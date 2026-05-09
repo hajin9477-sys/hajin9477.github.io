@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2030 혼술러 어피니티 다이어그램</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+:root {
+  --bg:#0d0d0f; --sur:#141416; --sur2:#1c1c20; --brd:#2a2a30;
+  --txt:#e8e6df; --mut:#6a6860; --acc:#c8b89a;
+  --mg1:#8a7eb0; --mg2:#b87c6e; --mg3:#6e9e82; --mg4:#7090b8; --mg5:#a08c7a;
+  --font:'Pretendard',-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.4}
+
+header{padding:24px 44px 0;border-bottom:1px solid var(--brd);position:sticky;top:0;background:rgba(13,13,15,.94);backdrop-filter:blur(14px);z-index:100}
+.h-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+h1{font-size:19px;font-weight:700;letter-spacing:-.03em;line-height:1.2}
+.sub{font-size:11px;color:var(--mut);margin-top:3px;letter-spacing:.01em}
+.stats{display:flex;gap:22px;font-size:10px;color:var(--mut);text-align:right}
+.sv{display:block;font-size:18px;font-weight:700;color:var(--acc);letter-spacing:-.02em}
+nav{display:flex}
+.nb{padding:9px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.nb:hover{color:var(--txt)}
+.nb.active{color:var(--acc);border-bottom-color:var(--acc)}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:9px 44px;border-bottom:1px solid var(--brd);font-size:11px}
+.li{display:flex;align-items:center;gap:5px;color:var(--mut)}
+.ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hint{margin-left:auto;font-size:10px;color:var(--mut)}
+
+.view{display:none;animation:fi .3s ease}
+.view.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* AFFINITY */
+#view-affinity{padding:24px 44px}
+.l2g{margin-bottom:14px;border:1px solid var(--brd);border-radius:10px;overflow:hidden;transition:border-color .2s}
+.l2g:hover{border-color:#3a3a42}
+.l2h{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.l2dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.l2lbl{font-size:13px;font-weight:600;flex:1;line-height:1.4;letter-spacing:-.01em}
+.l2meta{font-size:10px;color:var(--mut)}
+.l2chev{font-size:10px;color:var(--mut);transition:transform .2s}
+.l2g.col .l2chev{transform:rotate(-90deg)}
+.l1grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;padding:0 12px 12px}
+.l1c{border-radius:7px;border:1px solid;padding:10px 12px;cursor:pointer;transition:all .15s;position:relative}
+.l1c:hover{transform:translateY(-1px)}
+.l1ct{font-size:11px;font-weight:600;line-height:1.5;margin-bottom:3px;color:var(--txt);letter-spacing:-.01em}
+.l1cc{font-size:10px;opacity:.5}
+.cross-badges{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.cross-badge{font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;opacity:.75}
+
+/* NETWORK */
+#view-network{height:calc(100vh - 136px);position:relative}
+#net-svg{width:100%;height:100%}
+.nc{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:4px}
+.cb{width:30px;height:30px;background:var(--sur2);border:1px solid var(--brd);border-radius:6px;color:var(--mut);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cb:hover{color:var(--txt);border-color:var(--acc)}
+.net-legend{position:absolute;bottom:14px;left:14px;background:rgba(18,18,20,.88);border:1px solid var(--brd);border-radius:8px;padding:9px 13px;font-size:10px}
+.net-legend-title{color:var(--mut);font-weight:600;margin-bottom:5px;letter-spacing:.03em}
+.nlr{display:flex;align-items:center;gap:6px;margin-bottom:3px;color:var(--mut)}
+.nll{height:1px;width:24px;flex-shrink:0}
+
+/* DENDRO */
+#view-dendro{overflow:auto;padding:20px 0}
+#den-svg{display:block}
+
+/* EULER */
+#view-euler{height:calc(100vh - 136px);position:relative;overflow:hidden}
+#euler-svg{width:100%;height:100%;cursor:grab}
+#euler-svg:active{cursor:grabbing}
+
+
+/* SUNBURST */
+#view-sunburst{height:calc(100vh - 136px);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#sunburst-svg{display:block}
+.sb-info{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(18,18,20,.9);border:1px solid var(--brd);border-radius:8px;padding:8px 16px;font-size:10px;color:var(--mut);text-align:center;pointer-events:none;min-width:260px}
+.sb-info-title{font-size:12px;font-weight:700;color:var(--acc);margin-bottom:2px}
+
+/* SANKEY */
+#view-sankey{overflow:auto;padding:20px 30px;min-height:calc(100vh - 136px)}
+#sankey-svg{display:block;margin:auto}
+.sankey-note{font-size:10px;color:var(--mut);text-align:center;margin-top:8px;font-style:italic}
+
+/* CAUSAL */
+#view-causal{height:calc(100vh - 136px);position:relative;overflow:hidden}
+#causal-svg{width:100%;height:100%;cursor:grab}
+#causal-svg:active{cursor:grabbing}
+.causal-legend{position:absolute;bottom:14px;left:14px;background:rgba(18,18,20,.9);border:1px solid var(--brd);border-radius:8px;padding:9px 13px;font-size:10px}
+.causal-legend-title{color:var(--mut);font-weight:600;margin-bottom:6px}
+.cl-row{display:flex;align-items:center;gap:7px;color:var(--mut);margin-bottom:4px;font-size:9.5px}
+.cl-line{width:28px;height:2px;border-radius:2px;flex-shrink:0}
+/* SESSION FLOW */
+#view-flow{overflow-x:auto;overflow-y:auto;padding:28px 40px;min-height:calc(100vh - 136px)}
+.flow-wrap{display:flex;gap:0;min-width:900px}
+.flow-phase{flex:1;min-width:170px;border-right:1px solid var(--brd);padding:0 10px 20px}
+.flow-phase:last-child{border-right:none}
+.phase-hd{text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--brd)}
+.phase-tag{font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--mut);text-transform:uppercase;margin-bottom:3px}
+.phase-title{font-size:12px;font-weight:700;color:var(--txt);line-height:1.4}
+.phase-time{font-size:10px;color:var(--mut);margin-top:2px}
+.flow-arrow{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:18px;padding-top:36px;flex-shrink:0;width:24px}
+.flow-card{border-radius:6px;border:1px solid;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+.flow-card:hover{transform:translateY(-1px)}
+.flow-card-id{font-size:9px;font-weight:700;opacity:.7;margin-bottom:2px}
+.flow-card-txt{font-size:10px;font-weight:500;line-height:1.45;color:var(--txt)}
+.flow-card-cnt{font-size:9px;opacity:.45;margin-top:3px}
+.flow-footer{display:flex;gap:0;min-width:900px;margin-top:4px;border-top:1px solid var(--brd);padding-top:12px}
+.flow-kpi{flex:1;min-width:170px;padding:0 10px;text-align:center;font-size:10px;color:var(--mut);line-height:1.6}
+.flow-kpi strong{display:block;font-size:18px;font-weight:700;color:var(--acc)}
+
+/* CHORD */
+#view-chord{height:calc(100vh - 136px);position:relative;overflow:hidden}
+#chord-svg{width:100%;height:100%}
+.chord-tooltip{position:absolute;bottom:14px;left:14px;background:rgba(18,18,20,.9);border:1px solid var(--brd);border-radius:8px;padding:9px 13px;font-size:11px;max-width:280px;color:var(--mut)}
+.chord-title{font-weight:700;color:var(--acc);margin-bottom:3px;font-size:12px}
+
+/* TREEMAP */
+#view-treemap{overflow:auto;padding:20px 28px;min-height:calc(100vh - 136px)}
+#treemap-wrap{position:relative}
+.tm-breadcrumb{font-size:11px;color:var(--mut);margin-bottom:10px;min-height:18px}
+.tm-breadcrumb span{cursor:pointer;color:var(--acc);text-decoration:underline;text-underline-offset:2px}
+.euler-scale{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(18,18,20,.88);border:1px solid var(--brd);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--mut);font-family:var(--font);pointer-events:none}
+
+/* TOOLTIP */
+.tt{position:fixed;background:var(--sur2);border:1px solid var(--brd);border-radius:9px;padding:10px 14px;font-size:11px;max-width:320px;pointer-events:none;z-index:500;opacity:0;transition:opacity .15s;box-shadow:0 8px 28px rgba(0,0,0,.6)}
+.tt.on{opacity:1}
+.tt-title{font-weight:700;font-size:12px;color:var(--acc);margin-bottom:6px;line-height:1.4;letter-spacing:-.01em}
+.tt-body{font-size:10px;color:var(--mut);margin-bottom:4px}
+.tt-ins{list-style:none;display:flex;flex-direction:column;gap:3px;max-height:150px;overflow-y:auto}
+.tt-ins li{font-size:9.5px;color:var(--mut);line-height:1.5;padding-left:7px;border-left:2px solid var(--brd)}
+.tt-links{margin-top:5px;font-size:9px;color:var(--mut);font-weight:500}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.mo.open{display:flex}
+.mb{background:var(--sur);border:1px solid var(--brd);border-radius:14px;padding:24px 28px;max-width:520px;width:90%;max-height:82vh;overflow-y:auto;position:relative}
+.mt{font-size:14px;font-weight:700;color:var(--acc);margin-bottom:4px;line-height:1.5;padding-right:22px;letter-spacing:-.01em}
+.mc{font-size:10px;color:var(--mut);margin-bottom:12px;font-weight:500}
+.mi{list-style:none;display:flex;flex-direction:column;gap:6px}
+.mi li{font-size:11px;color:var(--txt);padding:6px 10px;background:var(--sur2);border-radius:5px;line-height:1.6;border-left:2px solid var(--brd)}
+.mclose{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--mut);font-size:16px;cursor:pointer}
+.mclose:hover{color:var(--txt)}
+.m-related{margin-top:12px;border-top:1px solid var(--brd);padding-top:10px}
+.mr-title{font-size:10px;color:var(--mut);font-weight:600;margin-bottom:5px;letter-spacing:.02em}
+.mr-tags{display:flex;flex-wrap:wrap;gap:4px}
+.mr-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;cursor:pointer;transition:opacity .15s}
+.mr-tag:hover{opacity:.7}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-top">
+    <div>
+      <h1>2030 혼술러 어피니티 다이어그램</h1>
+      <p class="sub">혼술 세션 관찰 연구 — 사용자 음주 행동 인사이트 270개</p>
+    </div>
+    <div class="stats">
+      <div><span class="sv">270</span>인사이트</div>
+      <div><span class="sv">23</span>소그룹</div>
+      <div><span class="sv">5</span>중그룹</div>
+    </div>
+  </div>
+  <nav>
+    <button class="nb active" onclick="switchView('affinity')">어피니티</button>
+    <button class="nb" onclick="switchView('network')">네트워크</button>
+    <button class="nb" onclick="switchView('dendro')">덴드로그램</button>
+    <button class="nb" onclick="switchView('euler')">오일러 다이어그램</button>
+    <button class="nb" onclick="switchView('flow')">세션 플로우</button>
+    <button class="nb" onclick="switchView('chord')">코드 다이어그램</button>
+    <button class="nb" onclick="switchView('treemap')">트리맵</button>
+    <button class="nb" onclick="switchView('sunburst')">선버스트</button>
+    <button class="nb" onclick="switchView('sankey')">생키</button>
+    <button class="nb" onclick="switchView('causal')">인과지도</button>
+  </nav>
+</header>
+
+<div class="legend">
+  <div class="li"><span class="ld" style="background:var(--mg1)"></span>MG1 · 루틴·몰입 환경</div>
+  <div class="li"><span class="ld" style="background:var(--mg2)"></span>MG2 · 초기 가속·인지 괴리</div>
+  <div class="li"><span class="ld" style="background:var(--mg3)"></span>MG3 · 페이스 조절 변수</div>
+  <div class="li"><span class="ld" style="background:var(--mg4)"></span>MG4 · 신체 신호·판단력 저하</div>
+  <div class="li"><span class="ld" style="background:var(--mg5)"></span>MG5 · 데이터 피드백·서비스</div>
+  <span class="hint">카드·노드 클릭 → 인사이트 상세 · 드래그 가능</span>
+</div>
+
+<main>
+  <div id="view-affinity" class="view active"><div id="aff-cont"></div></div>
+  <div id="view-network" class="view">
+    <svg id="net-svg"></svg>
+    <div class="nc">
+      <button class="cb" onclick="zIn()">+</button>
+      <button class="cb" onclick="zOut()">−</button>
+      <button class="cb" onclick="zReset()">⌂</button>
+    </div>
+    <div class="net-legend">
+      <div class="net-legend-title">연결 강도</div>
+      <div class="nlr"><div class="nll" style="background:rgba(200,184,154,.7);height:2px"></div>강한 연계</div>
+      <div class="nlr"><div class="nll" style="background:rgba(200,184,154,.4);height:1px"></div>중간 연계</div>
+      <div class="nlr"><div class="nll" style="background:rgba(200,184,154,.18);height:1px;border-top:1px dashed rgba(200,184,154,.35)"></div>약한 연계</div>
+    </div>
+  </div>
+  <div id="view-dendro" class="view"><svg id="den-svg"></svg></div>
+  <div id="view-euler" class="view">
+    <svg id="euler-svg"></svg>
+    <div class="nc">
+      <button class="cb" onclick="ezIn()">+</button>
+      <button class="cb" onclick="ezOut()">−</button>
+      <button class="cb" onclick="ezReset()">⌂</button>
+    </div>
+    <div class="net-legend">
+      <div class="net-legend-title">겹침 강도</div>
+      <div class="nlr"><div class="nll" style="background:rgba(200,184,154,.7);height:2px"></div>강한 연계 (많이 겹침)</div>
+      <div class="nlr"><div class="nll" style="background:rgba(200,184,154,.4);height:1px"></div>중간 연계</div>
+      <div class="nlr"><div class="nll" style="background:rgba(200,184,154,.18);height:1px;border-top:1px dashed rgba(200,184,154,.35)"></div>약한 연계 (살짝 겹침)</div>
+    </div>
+    <div class="euler-scale" id="euler-scale">100%</div>
+  </div>
+  <div id="view-flow" class="view">
+    <div class="flow-wrap" id="flow-wrap"></div>
+    <div class="flow-footer" id="flow-footer"></div>
+  </div>
+  <div id="view-chord" class="view">
+    <svg id="chord-svg"></svg>
+    <div class="chord-tooltip" id="chord-tt">
+      <div class="chord-title">그룹 간 연결 강도</div>
+      <div id="chord-tt-body">호버하면 연결 정보가 표시됩니다</div>
+    </div>
+  </div>
+  <div id="view-treemap" class="view">
+    <div class="tm-breadcrumb" id="tm-bc">전체 보기</div>
+    <div id="treemap-wrap"></div>
+  </div>
+  <div id="view-sunburst" class="view">
+    <svg id="sunburst-svg"></svg>
+    <div class="sb-info" id="sb-info">
+      <div class="sb-info-title" id="sb-title">중심을 클릭하면 드릴다운됩니다</div>
+      <div id="sb-body">5개 중그룹 · 23개 소그룹 · 270개 인사이트</div>
+    </div>
+  </div>
+  <div id="view-sankey" class="view">
+    <svg id="sankey-svg"></svg>
+    <p class="sankey-note">흐름 두께는 인사이트 수 기반 추정치입니다 — 각 노드 클릭 시 소그룹 상세 표시</p>
+  </div>
+  <div id="view-causal" class="view">
+    <svg id="causal-svg"></svg>
+    <div class="causal-legend">
+      <div class="causal-legend-title">피드백 루프 유형</div>
+      <div class="cl-row"><div class="cl-line" style="background:#e07060"></div>강화 루프 (+) — 문제 심화</div>
+      <div class="cl-row"><div class="cl-line" style="background:#6e9e82"></div>균형 루프 (−) — 자동 억제</div>
+      <div class="cl-row"><div class="cl-line" style="background:#7090b8;border-top:2px dashed #7090b8;height:0"></div>약한 / 잠재 연결</div>
+    </div>
+    <div class="nc"><button class="cb" onclick="czIn()">+</button><button class="cb" onclick="czOut()">−</button><button class="cb" onclick="czReset()">⌂</button></div>
+  </div>
+</main>
+
+<div class="tt" id="tt">
+  <div class="tt-title" id="tt-t"></div>
+  <div class="tt-body" id="tt-b"></div>
+  <ul class="tt-ins" id="tt-i"></ul>
+  <div class="tt-links" id="tt-l"></div>
+</div>
+
+<div class="mo" id="modal" onclick="cModal(event)">
+  <div class="mb">
+    <button class="mclose" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+    <div class="mt" id="m-title"></div>
+    <div class="mc" id="m-cat"></div>
+    <ul class="mi" id="m-ins"></ul>
+    <div class="m-related" id="m-rel" style="display:none">
+      <div class="mr-title">연계된 소그룹</div>
+      <div class="mr-tags" id="m-tags"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const GC={'MG1':'#8a7eb0','MG2':'#b87c6e','MG3':'#6e9e82','MG4':'#7090b8','MG5':'#a08c7a'};
+
+const GROUPS=[
+  {id:'MG1',color:'#8a7eb0',name:'혼술은 개인의 고정된 루틴과 콘텐츠가 결합된 몰입 환경에서 시작된다',short:'루틴·몰입 환경',total:73,children:[
+    {id:'NG11',name:'음주 시작 전 세팅 및 사진 촬영 등 고정된 준비 루틴이 관찰된다',count:8,insights:["참여자1은 음주 시작 전 안주(마라탕)로 빈속을 채우는 예비 동작을 하였다.", "참여자5는 사전에 라면·안주 등을 동시에 세팅하는 음식 중심의 준비 과정을 거쳤다.", "노트북이나 아이패드로 영상 콘텐츠를 고르는 과정이 음주 시작의 필수 루틴이다.", "주종에 맞는 전용 잔을 준비하는 행위가 음주 몰입도를 높이는 루틴이다.", "안주 세팅·술상 차리기 등의 루틴이 음주 분위기를 조성한다.", "세션 시작 전 사용자의 현재 감정 상태를 입력받아야 한다.", "세션 시작 시 음주 상황에 대한 이벤트 태그(시험, 퇴근, 이별 등) 기능을 제공해야 한다.", "참여자2는 음주 과정에서 전자담배를 함께 사용하는 습관을 보였다."]},
+    {id:'NG18',name:'사용자는 콘텐츠와 함께 자신만의 음주 몰입 환경을 만든다',count:7,insights:["자취방이라는 사적 공간이 외부 시선 없는 무방비한 음주 환경을 만든다.", "조명이 음주 환경의 감성적 만족도를 좌우한다.", "참여자6의 침대 바로 옆 환경은 '언제든 잘 수 있다'는 안도감을 제공하여 절제 기제를 무력화했다.", "혼술은 하나의 라이프스타일 루틴으로 정착되어 있다.", "혼술은 단순한 음주가 아닌 하나의 심리적 의례로 구조화되어 있다.", "혼술은 이동 없는 고정 세션이기 때문에 앱을 항상 가까이 두는 구조가 필요하다.", "참여자1은 세션 내내 자리 이탈 없이 고립된 자세로만 모든 행위를 수행했다."]},
+    {id:'NG21',name:'사용자는 혼술 중 무의식적인 습관 행동을 반복한다',count:25,insights:["참여자6의 음주·안주 섭취는 소량을 반복하는 패턴이었다.", "참여자3은 30분 이후 음주 속도가 감속되는 패턴을 보임.", "참여자3의 음주 감속 직전에는 소주병이나 캔의 잔량을 확인하는 행동이 선행됨.", "취기가 심해지면 할 일에 대한 걱정이 사라지고 현실 도피적 상태가 된다.", "참여자 대부분이 피로·시험 종료·이별·업무 소진 등 정신적 소진이나 보상 심리를 혼술 동기로 밝혔다.", "참여자1은 고강도 서비스직 노동 후의 정신적 피로를 혼술의 주동기로 삼았다.", "참여자6은 이별과 시험 종료라는 두 가지 복합 동기가 동시에 존재했다.", "참여자2는 처음엔 억지로 기분을 올리다 후반에 실제 감정이 고조되는 패턴을 보였다.", "부정적 감정 상태에서의 음주는 자기조절력 저하와 연결될 가능성이 높다.", "부정적 감정을 해소하기 위한 음주는 음주 중 자기조절 행동 감소로 이어지는 경향이 나타났다.", "술기운에 의한 감정 기복(불안감과 보상 심리의 공존)이 관찰되었다.", "참여자2는 음주 시 신체가 활발해지는 이완 상태를 경험했다.", "참여자2는 음주 중에도 정신적으로는 불안감이 지속되는 심리적 불균형을 보였다.", "참여자3은 라벨 제거하기나 병 찌그러뜨리기와 같은 자신만의 음주 마무리 의례를 가졌다.", "마무리 의례가 완료되지 않았을 경우, 미완결된 행위를 끝내려는 욕구가 음주 시간을 강제로 지속시켰다.", "참여자는 혼술을 관계 대체가 아닌 귀찮음 해소 수단으로 사용하며, 음주 동기가 개인 욕구 중심임.", "음주 과정에서 기분 상승과 집중력 저하가 동시에 나타나며, 정서적 보상과 인지 기능 저하가 함께 발생.", "기분 상승은 음주 지속을 강화하는 요인으로 작용하며, 음주가 정서적 보상 경험으로 기능한다.", "종료 직전에 '마지막 원샷 or 남은 거 털기' 행동이 전원에서 관찰됨. (100% 공통)", "잔/병 완료 직후 짧은 정지가 있음 (100% 공통).", "마지막 안주는 '마무리 의식'. 종료 직전 마지막 안주 행동이 전원에서 관찰됨.", "음주 중반(3-4잔 구간)에는 술에 대한 집착이 행동으로 드러나며 음주 속도에 가속도가 붙기 시작한다.", "만취 상태에서는 이성적 판단이 흐려져 엉뚱한 행동을 반복하는 양상을 보인다.", "취기가 심해질수록 사용자의 언어나 소리를 통한 감정 표출이 늘어난다.", "만취 단계에서 사용자가 무의식적으로 내는 소리나 혼잣말은 자제력 상실을 나타내는 강력한 지표이다."]},
+    {id:'NG22',name:'사용자는 자신의 혼술 패턴이 반복된다는 사실을 인지하지 못한다',count:33,insights:["음주 세션의 총 길이는 참여자별로 38분~90분 이상으로 편차가 컸다.", "실제 행동에서는 음주보다 주변 행동 비율이 높게 나타나, 음주가 다른 행동 사이에 끼어 있는 구조.", "참여자1~6 모두 시간이 지날수록 취기 점수가 누적 상승하는 흐름을 보였다.", "참여자1, 3, 4는 짧은 시간 안에 급격하게 취기가 상승하는 패턴을 보였다.", "참여자2는 가장 긴 시간 동안 완만하게 취기가 증가하는 지속형 패턴을 보였다.", "참여자5는 전체적으로 안정적인 기울기로 취기가 누적되는 패턴을 보였다.", "참여자6은 중반 이후 취기 상승 속도가 급격히 빨라지는 전환 구간이 나타났다.", "참여자1과 4는 유사한 시간대 안에서 비슷한 속도로 취기가 상승했다.", "참여자3은 가장 빠른 초기 취기 상승 속도를 보였다.", "참여자2와 5는 긴 세션 동안 비교적 일정한 취기 증가 리듬을 유지했다.", "참여자1~6 모두 특정 시점 이후 취기 상승 기울기가 변화하는 구간이 나타났다.", "참여자1, 3, 4는 짧은 시간 대비 높은 취기 누적 효율을 보였다.", "참여자2는 가장 긴 음주 시간에도 급격한 폭주형 상승 없이 점진적 증가를 유지했다.", "참여자6은 초반에는 완만했지만 후반부에 참여자1, 4 수준의 상승 기울기로 전환되었다.", "참여자5는 전체 참여자 중 가장 안정적인 곡선 형태를 유지했다.", "참여자1~6 모두 취기 상승 속도가 완전히 일정하지 않고 구간별로 달라졌다.", "참여자별 총 음주 시간은 큰 편차를 보임.", "음주 시간의 차이와 별개로 최종 취기 수준은 특정 범위(2.5~3.5)로 수렴함.", "참여자1~6 모두에게서 개인별 반복 리듬 기반의 음주 패턴이 관찰되었다.", "참여자1~6 모두 일정 구간 이후 자신만의 기준 템포에 수렴하는 경향을 보였다.", "참여자1~6 모두 음주 속도가 완전히 랜덤하게 유지되지는 않았다.", "참여자1~6 모두 특정 행동이나 상황 변화 이후 간격 변화가 발생했다.", "참여자1~6 모두 시간 흐름에 따라 음주 리듬이 점진적으로 재조정되었다.", "참여자1~6 모두 짧거나 긴 간격이 반복되는 패턴 구조를 형성했다.", "참여자2, 4, 5는 일정 범위 안에서 반복되는 안정적인 간격 패턴이 나타났다.", "참여자3과 5는 주종 및 상황 전환 이후 음주 리듬이 변화했다.", "참여자6은 긴 공백 이후 다시 짧은 간격으로 복귀하는 리셋 패턴이 두드러졌다.", "참여자4와 5는 후반부로 갈수록 간격 편차가 감소하며 반복성이 강화되었다.", "참여자1, 3, 6은 안정 구간 이후 급격한 간격 변화가 발생했다.", "모든 참여자의 음주 세션 중간에 10분 이상의 공백 구간이 반드시 존재함.", "모든 참여자에게서 음주 중반부에 음주 속도가 느려지거나 간격이 벌어지는 변곡점이 나타났다.", "후반부에 모금 단위가 작아짐 (100% 공통).", "사용자는 음주 초기(1-2잔 구간)에 술 이외의 다른 활동을 병행하는 여유를 보임."]}
+  ]},
+  {id:'MG2',color:'#b87c6e',name:'음주 초기에는 급격한 가속과 함께 인지적 괴리가 발생한다',short:'초기 가속·인지 괴리',total:37,children:[
+    {id:'NG01',name:'음주 초기 30분 동안 섭취 속도가 집중적으로 가속되는 현상이 나타난다',count:14,insights:["초반 고밀도→후반 감속 구조가 전 참여자에서 공통으로 확인되었다.", "참여자1은 음주 소요 시간이 평소 인지하던 2시간의 약 1/3이 걸렸다.(약 40분에 소주 2병)", "참여자1의 첫 잔과 두 번째 잔 사이 간격은 56초로 매우 짧았음.", "참여자1은 전체 22회 음주 행위 중 17회(77%)를 원샷으로 처리했다.", "참여자1은 25분경 빈 병의 남은 방울까지 털어 마시며 강한 음주 욕구를 보였다.", "보상 심리가 강한 유형은 첫 잔에 긴장 해소 욕구가 집중됨.", "긴장 해소 욕구는 초반 과속 음주의 심리적 원인이 됨.", "참여자1은 1병 완료(17분) 후 2병 시작(20분) 사이에 휴식 없이 바로 다음 병을 개봉했다.", "참여자1은 15분 만에 1병(11잔)을 비우는 초반 집중 과부하 패턴을 보였다.", "첫 잔을 빠르게 마시는 행위는 긴장을 즉각적으로 해소하려는 욕구의 분출이다.", "초반에 음주 행동이 집중되고 후반으로 갈수록 급격히 감소하는 초반 집중형 구조를 보인다.", "모든 참여자가 첫 음주 후 5분 이내에 두 번째 음주 행동을 보임.", "음주 초기 단계는 한 번 시작하면 연속성이 강하게 발생하는 구간임.", "첫 잔과 두 번째 잔 사이 간격이 전체 세션에서 가장 짧음."]},
+    {id:'NG03',name:'실제 취기 발생 시점과 인지 시점 사이에 2~10분 이상의 시간차가 존재한다',count:7,insights:["참여자2는 순알코올 약 14g에서 이미 취기를 느끼는 낮은 주량이었으나 2캔째를 강행했다.", "참여자 전원에서 실제 신체 반응 발현 시점보다 취했다고 인식하는 시점이 2~10분 이상 늦었다.", "참여자2는 음주 시작 30초 만에 얼굴이 빨개지는 매우 높은 알코올 민감도를 보였다.", "참여자2는 음주 1캔째에 이미 스스로 취기를 충분히 느꼈다.", "취기 상승은 2~3잔 구간에서 발생했음에도 4잔에서 취했다고 인식하여, 상태 인지가 지연되는 특징.", "참여자5는 화장실을 가기 위해 일어나는 행위가 비로소 자신의 취기를 점검하는 계기가 되었다.", "참여자6은 맥주 한 병을 다 마신 시점을 취기 인식의 기준으로 삼았다."]},
+    {id:'NG04',name:'사용자는 자신의 음주 속도와 상태를 실제 데이터보다 낙관적으로 인지한다',count:11,insights:["참여자5는 초반 밀도가 높았음에도 평균 속도를 근거로 '느리게 마셨다'고 일반화했다.", "피로도·공복 여부 등 상황에 따라 주량은 가변적이다.", "'나는 아직 멀쩡하다'는 자기 과신이 음주 중단 결정을 지속적으로 늦춘다.", "참여자1은 취기가 올라도 마지막 잔까지 원샷 방식을 고수하여 신체 신호가 행동을 변화시키지 못했다.", "참여자5는 취기 인지 기준을 장소 이동에 두었다.", "참여자6은 '술을 섞어 마시면 숙취가 있다'는 자신의 음주 지식을 실제 음주 선택 과정에서 판단 기준으로 활용했다.", "참여자2는 자신이 취한 지점을 정확히 알고 있었음에도 스스로 음주량을 조절하지 못했다.", "참여자는 느리게 마셨다고 인식하지만, 실제로는 초반 음주 밀도가 높아 자기 인식과 행동 간 괴리 존재.", "초반 2~3잔 구간이 실제 취기 형성 핵심 구간임에도, 사용자는 이를 위험 구간으로 인식하지 못한다.", "참여자5는 인지 저하 상태를 '평소와 비슷하다'고 느끼는 상태 인식 민감도가 매우 낮았다.", "참여자5는 인식과 실제 조절 능력 사이에 큰 괴리가 존재하여 데이터 증거 제시가 필수적이다."]},
+    {id:'NG19',name:'사용자가 음주 중 잔을 리필하거나 섞어 마시는 등의 행동으로 인해 정확한 음주량 측정이 어려워진다',count:5,insights:["정확한 측정을 위해 시간 및 모금 기반의 보조 측정 방식이 추가되어야 한다.", "장시간 비활성 구간(11분 이상 음주 기록 없음)을 감지하는 기능이 세션 정확도를 높인다.", "술잔의 기울기나 횟수를 자동 측정하는 스마트 잔·디스펜서에 대한 수용도가 높다.", "화장실 이동 등 자리 이탈 행동은 데이터에 충분히 기록되지 않아, 관찰 데이터의 구조적 한계가 확인됨.", "참여자5는 한 잔을 다 비우지 않고 지속적으로 리필하며 섞어 마셔 잔 단위 측정을 방해했다."]}
+  ]},
+  {id:'MG3',color:'#6e9e82',name:'외부 활동과 섭취 방식은 음주 페이스를 물리적으로 조절하는 변수가 된다',short:'페이스 조절 변수',total:44,children:[
+    {id:'NG05',name:'안주 섭취 행동은 잔을 드는 시간 간격을 물리적으로 확장시킨다',count:13,insights:["안주 섭취 구간에서 잔 간격이 자연스럽게 늘어나는 패턴이 전 참여자에서 나타났다.", "참여자2는 술을 마신 직후 안주를 섭취하여 무의식적으로 안주를 알코올의 완충재로 활용했다.", "국물 연속 섭취는 씹는 안주보다 음주 속도에 다른 영향을 미칠 수 있다.", "안주 섭취 간격 트래킹이 음주 속도 예측 정확도를 높이는 핵심 변수가 된다.", "안주 섭취 이벤트의 절반 이상이 음주 전반부에 집중됨.", "음주 시작 시점에 안주를 먹고 싶은 욕구가 최고조에 달함.", "안주가 먼저 끝난다. 참여자4·5·6 모두 음주 종료 전 안주가 소진됨.", "안주 섭취 빈도가 급격히 감소하는 시점이 나타남.", "안주 섭취의 중단은 수십 분 내에 음주가 종료될 것임을 알리는 신호(트리거)임.", "술-안주는 교차하지 않고 번갈아 진행. 술 마시는 순간과 안주 먹는 순간이 동시에 일어나지 않음.", "안주 종류는 단순할수록 지속성이 높다.", "음주 속도가 빠른 참여자는 안주 섭취 빈도도 높았으며, 음주·안주 스타일이 유사한 패턴으로 나타났다.", "사용자는 음주 초기 단계(1-2잔 구간)에서 안주나 콘텐츠 같은 부수적인 즐거움에 집중함."]},
+    {id:'NG09',name:'영상 콘텐츠 시청 중에는 잔을 드는 주기가 콘텐츠 흐름에 동기화된다',count:11,insights:["참여자 전원이 유튜브·넷플릭스 등 영상 콘텐츠와 함께 혼술했다.", "콘텐츠 몰입도가 높아지면 잔 간격이 줄어든다.", "영상 시청이 멈추지 않는 한 음주도 함께 지속되는 경향이 있다.", "인지 자원 고갈은 음주 페이스 조절을 방해하는 요소가 됨.", "디지털 자극(도파민)과 알코올이 결합되어 강한 중독적 패턴을 형성한다.", "참여자6은 콘텐츠 전환 시점이 음주 패턴 변화 시점과 겹칠 수 있다.", "영상 시청 중 끄덕이거나 공감하는 비언어적 반응이 취기 중에도 활발하게 나타났다.", "특정 음악이나 영상의 템포에 맞춰 음주 속도가 무의식적으로 동기화된다.", "참여자2와 5는 콘텐츠 소비 흐름 변화와 함께 음주 간격 변화가 함께 나타났다.", "콘텐츠 집중 시 안주 빈도 감소.", "음주 후반(5-7잔 구간) 인지 능력이 저하된 사용자는 즐기고 있던 콘텐츠를 수시로 바꾸는 집중력 저하를 보인다."]},
+    {id:'NG10',name:'스마트폰 사용 및 소셜 활동 중에는 음주 잔 간격이 일시적으로 넓어진다',count:8,insights:["참여자2, 6은 카톡·연락 등 휴대폰 사용 구간에서 자연스럽게 잔 간격이 벌어졌다.", "참여자6은 넷플릭스 내용에 능동적으로 혼잣말로 반응하며 고립감을 해소했다.", "음주 중 쇼핑 앱 접속은 충동적인 지출로 이어질 위험이 크다.", "음주 중 적적함을 채우기 위해 더 많은 양의 술을 마시게 되는 경향이 있다.", "음주 중 느끼는 고립감이 음주량을 늘리는 심리적 변수가 된다.", "안주 섭취, 콘텐츠 시청, 스마트폰 사용이 주요 공백 유발 요인임.", "음주 중반(3-4잔 구간)에는 외부와의 연결(카톡, 전화 등)을 시도하는 행동이 집중적으로 나타난다.", "음주 중반(3-4잔 구간)부터 사용자의 사회적 억제력이 느슨해지며 외부 연락 빈도가 급증한다."]},
+    {id:'NG06',name:'식사 중심의 혼술 유형은 포만감 이후 음주 행위가 감소한다',count:10,insights:["참여자5는 중반 이후 음주 중심에서 식사 중심으로 전환되었다.", "참여자1은 안주가 오히려 음주 가속 트리거가 되었다.", "참여자1은 안주를 7~9회 연속 집중 섭취한 직후에는 반드시 원샷이 발생하는 기계적 패턴을 보였다.", "참여자1은 음주 30분 경과 후부터 안주 섭취 횟수가 급격히 감소하며 음주에만 집중했다.", "손쉬운 과자류 안주는 음주 흐름을 끊지 못하고 지속시키는 경향이 있다.", "참여자5는 라면과 과자 섭취 빈도가 음주 빈도를 압도하는 식사 중심 구조를 보였다.", "참여자6은 고당분(케이크)과 고나트륨(라면) 안주 조합으로 입안의 자극을 극대화하며 음주했다.", "참여자5의 혼술 만족 요인이 술 자체가 아닌 음식에 있었다.", "참여자1은 음주 직후(20~30초 내) 반드시 안주를 먹는 기계적 병행 패턴이 세션 내내 반복되었다.", "사용자는 음주 후반(5-7잔 구간) 배부름을 느끼면서도 습관적으로 안주(국물 등)를 계속 섭취한다."]},
+    {id:'NG16',name:'수분 섭취 행동이 취기 농도 조절 및 숙취 데이터에 영향을 미친다',count:2,insights:["참여자6은 물을 의도적으로 3회 섭취하며 음주 농도를 스스로 조절하려는 노력을 보였다.", "물·생수는 후반에 등장. 참여자2·6 모두 물 섭취가 음주 중반 이후에 집중."]}
+  ]},
+  {id:'MG4',color:'#7090b8',name:'신체는 명확한 종료 신호를 보내지만 인지적 판단력은 점차 저하된다',short:'신체 신호·판단력 저하',total:53,children:[
+    {id:'NG07',name:'자세 무너짐과 근육 조절 능력 저하 등 신체적 변화가 기록된다',count:21,insights:["음주 심화 시 홍조와 자세 흐트러짐이 순차적으로 나타남.", "안주를 떨어뜨리거나 젓가락질 실수가 잦아지는 것은 감각 저하 신호다.", "참여자1은 34분 59초경부터 턱을 괴는 동작이 관찰되었다.", "참여자6은 56분경 상체가 옆으로 기울거나 구부정해지는 자세 흐트러짐이 발생했다.", "참여자3의 안주 섭취 시간이 초반 수십 초에서 20분 후 120초로 늘어났다.", "술기운에 의한 감각 둔화는 음주 속도를 더 가속화하는 악순환을 만들기도 한다.", "참여자5는 중반 이후 중얼거리거나 흥얼거리는 행동이 늘어났다.", "참여자1은 취기가 올라도 씹는 속도가 완만해지는 신체 반응을 보였다.", "빈속 음주는 알코올 흡수 속도를 높여 취기 심화를 가속한다.", "1잔: 음주 초기에는 신체 증상보다 주변 환경에 적응하려는 행동이 먼저 나타난다.", "2잔: 초기 취기 반응으로 일부 참여자에게서 홍조나 술 흘림이 관찰되었다.", "3잔: 3잔 이후 시점부터 신체 반응이 발생하는 빈도가 눈에 띄게 증가한다.", "4잔: 4잔 구간은 시각적 취기 반응(눈 비빔, 얼굴 상기)이 본격화되는 지점이다.", "4잔 이후: 4잔을 기점으로 참여자들의 전반적인 행동 리듬이 느려지거나 불안정해진다.", "사용자의 신체 반응은 단발성이 아닌 여러 증상이 단계적으로 이어지는 흐름을 보인다.", "음주가 진행됨에 따라 사용자의 자세 안정성이 점진적으로 감소한다.", "신체 증상은 갑작스러운 발생보다 음주량에 따라 누적된 형태로 진행된다.", "특정 잔수 이후부터는 의도적인 행동보다 무의식적인 신체 반응의 비중이 더 커진다.", "대부분의 주요 신체 변화는 3~6잔 구간 사이에 집중적으로 발생한다.", "주종에 관계없이 4잔은 신체 제어력이 약화되는 공통적인 전환점이다.", "모든 참여자에게서 카메라 등으로 감지 가능한 외형적 취기 신호가 관찰되었다."]},
+    {id:'NG08',name:'눈 깜빡임과 하품 등 졸음 지표가 음주 종료 직전에 집중된다',count:8,insights:["최종 단계에서 눈 풀림 및 졸음 신호가 나타나며 음주가 중단됨.", "참여자6은 1시간 5분경 눈 깜빡임이 느려지고 자주 깜빡이는 전형적인 졸음 신호를 보였다.", "참여자6에게서 하품과 졸음 호소가 관찰됨.", "참여자6은 음주 54분경 안면 홍조와 함께 눈 풀림 증상이 영상에 기록되기 시작했다.", "6잔: 6잔 구간에서는 하품이나 턱 괴기 같은 피로 관련 신체 신호가 집중된다.", "7잔 이상: 7잔 이후에는 외부 콘텐츠보다 자기 자신에게 집중하는 반응(혼잣말 등)이 주를 이룬다.", "종료 직전: 사용자가 술을 그만 마시기 직전에 신체 반응의 밀도가 가장 높게 나타난다.", "7잔 이상 구간에서는 추가 음주보다 신체 안정을 찾으려는 행동이 지배적으로 나타난다."]},
+    {id:'NG02',name:'술의 소진, 졸음, 포만감 등 비자발적 요인이 음주 종료를 유발한다',count:13,insights:["음주 중단은 개인의 의지가 아닌 외부 및 신체적 요인에 의해 수동적으로 발생함.", "술의 소진이 음주 중단을 유발하는 수동적 요인이다.", "졸음이 음주 중단을 유발하는 수동적 요인이다.", "포만감이 음주 중단을 유발하는 수동적 요인이다.", "참여자6은 '배부르다'고 인지한 후에도 실제 음주를 중단하기까지 시간차가 발생함.", "신체적 포만감이 음주 중단 행동으로 즉각 연결되지 않음.", "참여자6은 '더 마시면 안될 것 같다'는 한계를 느끼자 음주를 종료했다.", "참여자6은 졸음 신호 발현 이후 실제 음주 중단으로 이어짐.", "참여자4는 음주 중단 기준을 간지러움·알코올 향 거부감 등 즉각적인 신체 감각에 두었다.", "참여자2는 '더 못 마실 것 같다'고 느끼자 음주를 종료했다.", "참여자2의 음주 종료는 신체적 고통이나 한계치 도달에 의해 비자발적으로 발생했다.", "음주 중단은 인지적 판단이 아니라 간지러움, 알콜향과 같은 신체 감각에 의해 결정된다.", "참여자는 음주 중단 기준을 신체 감각에 두며, 음주 행동이 의지보다 감각 신호에 의해 조절되는 구조."]},
+    {id:'NG12',name:'만취 상태에서 양치, 세안, 뒷정리 등 마무리 루틴이 생략된다',count:7,insights:["취기가 심화되면 양치나 세안 루틴을 생략하고 바로 침대로 이동하는 패턴이 자주 관찰된다.", "술상을 정리하지 않고 그대로 둔 채 잠드는 무기력한 음주 종료가 빈번히 관찰됐다.", "세션 종료 후 물 마시기나 간단 정리 같은 마무리 루틴을 유도하는 기능이 필요하다.", "마무리 루틴 유도는 사용자에게 실생활에 밀착된 케어 서비스를 받는다는 가치를 제공한다.", "참여자1은 약 37분의 음주 시간 동안 단 한 차례의 수분 보충도 하지 않았다.", "참여자2는 혼술 세션이 명확한 마무리 없이 흐지부지 끝나는 것에 대해 아쉬움을 느꼈다.", "참여자2는 음주 경험에 있어 깔끔한 마무리를 원하는 완결 욕구를 가지고 있다."]},
+    {id:'NG17',name:'개별 음주 세션은 수면 및 생체 데이터와 상관관계를 형성한다',count:4,insights:["음주 데이터와 수면 패턴 데이터를 함께 트래킹해야 한다.", "통합 데이터를 통해 수면의 질과 음주량 간의 상관관계를 장기적으로 제시할 수 있다.", "서비스의 분석 범위를 단일 세션에서 주간·월간 단위의 장기 데이터로 확장해야 한다.", "혼술 빈도와 감정 트리거 패턴을 함께 분석하면 사용자 음주 습관에 대한 장기적 이해가 가능하다."]}
+  ]},
+  {id:'MG5',color:'#a08c7a',name:'사용자는 자율성을 해치지 않는 개인화된 데이터 피드백과 개입을 선호한다',short:'데이터 피드백·서비스',total:63,children:[
+    {id:'NG13',name:'사용자는 강제 경고보다 데이터 중심의 정보 제공 방식을 선호한다',count:10,insights:["참여자5는 AI 개입이 필요 없다고 응답하며 자기 조절 능력에 대해 신뢰를 보였다.", "참여자 전원에서 실시간 경고 방식의 개입에 거부감이 나타났다.", "취하는 것 자체가 목적인 참여자에게는 직접적인 경고가 효과적이지 않다.", "참여자5, 6은 외부 통제보다 스스로 판단하고 싶다는 자율성 욕구가 강했다.", "자율성 선호형 사용자에게는 대시보드 형태의 정보 제공 UX가 더 적합하다.", "개입 타이밍을 사용자가 직접 설정할 수 있는 기능이 거부감을 낮춘다.", "절주를 강요하는 서비스보다 경험을 풍부하게 만드는 방향이 수용성이 높다.", "단순한 위험 경고 메시지는 사용자에게 부정적인 경험을 줄 수 있다.", "참여자는 혼술에서 자율성을 중요하게 인식하며, 외부 개입은 정보 제공 형태일 때 수용 가능성이 높다.", "혼술의 즐거움을 해치지 않으면서 건강을 챙기는 중립적 톤앤매너가 핵심이다."]},
+    {id:'NG14',name:'음주 데이터 시각화 자료는 사용자의 습관 개선 의지를 자극한다',count:18,insights:["자신의 음주 데이터를 정교하게 보여주는 것만으로도 음주 습관을 개선하려는 강력한 동기부여가 된다.", "자기조절 필요성을 이미 느끼는 사람이 서비스의 핵심 타겟이다.", "음주를 통제하고 있다는 느낌 자체가 심리적 안정감을 제공한다.", "음주를 관리의 대상으로 보는 참여자(4)는 AI 피드백을 정보 제공으로 인식하여 긍정적으로 수용했다.", "참여자2, 4는 예상 vs 실제 괴리를 보여주면 의도적으로 습관을 개선할 것 같다고 명확히 응답했다.", "참여자1은 스스로 음주 조절이 어렵다는 점을 인지하고 있다.", "참여자4는 AI의 '페이스가 빠르다'는 피드백에 대해 실제 행동 수정 의지를 보였다.", "절주로 아낀 칼로리 등 긍정적 보상을 강조하는 메시지가 행동 변화에 더 효과적이다.", "실제 음주 과정을 보여주는 타임라인 요약 방식은 사용자 수용성이 가장 높다.", "세션 시작 시 예상치와 실제 데이터를 대조하여 보여주는 화면을 제공해야 한다.", "참여자5처럼 개입이 필요 없다고 인식하는 유형에는 데이터를 통한 인식 교정이 먼저 선행되어야 한다.", "취기 인지에 오류가 있는 유형에는 영상이나 수치 등 객관적 증거로 교정해주는 기능이 필요하다.", "참여자2는 현재 자신의 음주 상태를 객관적으로 파악하지 못하고 있다는 답답함을 가졌다.", "참여자2는 자신의 상태를 객관화해 줄 수 있는 외부 피드백 수단에 대해 명확한 필요성을 느꼈다.", "참여자는 AI 피드백과 자기 데이터 기반 조절에 긍정적으로 반응하며, 음주를 '조절' 대상으로 인식.", "AI의 '페이스가 빠르다'와 같은 피드백에 긍정적으로 반응하여, 행동 수정 가능성이 높은 유형이다.", "참여자는 음주를 줄이는 것이 아니라 상황에 따라 속도를 조절하는 것을 목표로 하며 '관리 대상'으로 인식.", "데이터 기반의 자기 객관화는 혼술족의 만족을 높이는 도구가 될 수 있다."]},
+    {id:'NG15',name:'목표 주량 설정은 통제감을 부여하나 취기 심화 시 이행률이 낮다',count:5,insights:["참여자2는 취기로 인해 콘텐츠에 집중하지 못하는 상태를 '손해'라고 인식함.", "참여자2는 콘텐츠 즐거움을 유지하기 위해 적정 취기를 유지하고자 하는 니즈가 있음.", "음주 전에 세운 할 일 계획은 취기가 오르면 대부분 지켜지지 않는다.", "세션 시작 전 오늘의 목표 주량을 설정하는 기능이 필요하다.", "목표 설정은 사용자의 자기효능감을 높이고 조절 의도를 공식화하는 효과가 있다."]},
+    {id:'NG20',name:'사용자가 자신의 체질·주종·섭취 스타일에 맞는 개인화된 음주 페이스 가이드를 원한다',count:8,insights:["고농도 알코올(하이볼)은 취기 심화 속도를 예측하기 어렵게 만든다.", "심박수나 체온 변화 등 생체 신호는 취기 정도를 객관화하는 근거가 될 수 있다.", "참여자2는 개인화된 속도·양 가이드를 원했다.", "주종별 알코올 흡수 속도 차이를 반영한 맞춤 분석이 가능하다.", "주종과 섭취 스타일 간 상관관계를 데이터로 누적하면 개인화 분석 정확도가 올라간다.", "음주 습관을 학습하여 사용자 맞춤형 페이스 조절 가이드를 제공해야 한다.", "입력된 감정 데이터는 음주 패턴 예측에 활용된다.", "주종과 사용자의 섭취 스타일 간의 상관관계를 데이터로 누적해야 한다."]},
+    {id:'NG23',name:'사용자가 음주 목적과 취기 패턴이 다른 상황에서 개입의 방식과 타이밍이 달라져야 효과적이다',count:22,insights:["식사 행위가 길어지는 구간은 음주 중단 유도를 위한 최적의 개입 시점이다.", "음주를 식사 보조 음료로 인식하는 유형은 서비스 접근 방식이 달라야 한다.", "만취 목적의 사용자에게는 의도적인 행동 설계를 통한 개입이 더 효과적이다.", "안주 조리·화장실·휴대폰 확인 등 자연스러운 인터벌 시점에 알림을 주는 방식이 수용성이 높다.", "실시간 개입에 거부감을 느끼는 사용자에게는 사후 데이터 리뷰 방식이 더 적합하다.", "참여자3, 4와 같이 확증 편향이 강한 유형은 단순 데이터만으로 설득하기 어렵다.", "확증 편향이 강한 유형에게는 단순 수치 이상의 강력한 행동 변화 트리거가 필요하다.", "음주 중인 사용자는 세밀한 기기 조작에 물리적인 어려움을 겪는다.", "취중 상황을 고려하여 비접촉 방식이나 음성 기반의 UI를 설계해야 한다.", "편의점 방문 시점에 오늘의 한도를 리마인드해 주는 개입이 행동 변화에 유효하다.", "혼잣말 빈도가 증가하는 시점을 AI 말동무 기능 진입 포인트로 활용할 수 있다.", "콘텐츠 전환 시점을 음주 넛지 타이밍으로 활용하는 방안을 설계에 반영할 수 있다.", "효과적인 개입이 이루어져야 하는 골든타임은 음주 초반 10~15분 구간이다.", "음식 준비 시간을 서비스 내 '잠깐 쉬어가기' 유도 기능의 설계 레퍼런스로 활용할 수 있다.", "영상 시청을 방해하지 않는 플로팅 위젯 형태의 가이드가 선호된다.", "취중 충동 구매나 연락 등 위험 행동을 차단하는 기능을 설계해야 한다.", "위험 행동 차단 기능은 사용자의 안전한 음주 환경 조성 측면에서 유효하다.", "서비스 설계의 핵심은 개별 세션 간의 연속성을 확보하는 것이다.", "음주 전/중/후의 맥락에 따라 서비스가 제공해야 할 가치가 다르다.", "취기 심화 단계보다 음주 초반과 주종 전환 시점에 개입이 집중되어야 한다.", "서비스 적용: 3~4잔 구간에서 외부 연락이 잦아지는 사용자에게 경고 팝업을 띄워줄 수 있다.", "서비스 적용: 6잔 이후 자리 이탈이나 빈 병 확인 같은 행동이 포착되면 자연스러운 음주 종료를 유도한다."]}
+  ]}
+];
+
+const L2_LINKS=[{"s": "MG1", "t": "MG2", "str": 3, "label": "루틴이 초기 음주 속도·패턴을 결정"}, {"s": "MG1", "t": "MG3", "str": 3, "label": "몰입 환경이 페이스 조절 변수를 형성"}, {"s": "MG2", "t": "MG4", "str": 3, "label": "초기 인지 실패 → 종료 신호 무시"}, {"s": "MG3", "t": "MG4", "str": 2, "label": "페이스 누적이 신체 반응으로 이어짐"}, {"s": "MG2", "t": "MG5", "str": 2, "label": "인지 괴리 → 객관 데이터 필요성"}, {"s": "MG4", "t": "MG5", "str": 2, "label": "신체 데이터가 서비스 인풋이 됨"}, {"s": "MG1", "t": "MG5", "str": 1, "label": "루틴 패턴이 개인화 가이드 기반"}, {"s": "MG3", "t": "MG2", "str": 1, "label": "페이스 변수가 인지 오류에 영향"}];
+
+const L1_LINKS=[{"s": "NG11", "t": "NG01", "str": 3, "label": "준비 루틴 후 초반 가속 패턴 발현"}, {"s": "NG21", "t": "NG04", "str": 2, "label": "무의식 습관 → 속도 낙관 인지"}, {"s": "NG22", "t": "NG03", "str": 2, "label": "패턴 미인지 → 취기 시차 무감각"}, {"s": "NG18", "t": "NG09", "str": 3, "label": "콘텐츠 몰입이 음주 주기를 동기화"}, {"s": "NG21", "t": "NG05", "str": 2, "label": "습관 행동이 안주 섭취와 연동"}, {"s": "NG04", "t": "NG07", "str": 3, "label": "낙관 인지 → 신체 신호 과소평가"}, {"s": "NG01", "t": "NG08", "str": 2, "label": "초반 가속이 졸음 지표 조기 발현"}, {"s": "NG19", "t": "NG02", "str": 2, "label": "측정 어려움 → 비자발적 종료 발생"}, {"s": "NG09", "t": "NG07", "str": 2, "label": "콘텐츠 몰입 중 자세 무너짐 심화"}, {"s": "NG06", "t": "NG02", "str": 2, "label": "포만감이 비자발적 종료 유발"}, {"s": "NG16", "t": "NG17", "str": 2, "label": "수분 섭취가 생체 데이터에 영향"}, {"s": "NG03", "t": "NG13", "str": 2, "label": "취기 시차 → 실시간 데이터 필요"}, {"s": "NG04", "t": "NG14", "str": 2, "label": "낙관 인지 → 시각화로 교정"}, {"s": "NG17", "t": "NG14", "str": 3, "label": "수면·생체 데이터가 시각화 소재"}, {"s": "NG08", "t": "NG13", "str": 2, "label": "졸음 지표가 데이터 알림 트리거"}, {"s": "NG12", "t": "NG23", "str": 2, "label": "루틴 생략 → 개입 타이밍 필요"}, {"s": "NG22", "t": "NG20", "str": 1, "label": "패턴 미인지 → 개인화 가이드 필요"}];
+
+// 소그룹 ID → 부모 중그룹 색상
+function parentColor(ngId){
+  const mg=GROUPS.find(g=>g.children.some(c=>c.id===ngId));
+  return mg?mg.color:'#888';
+}
+function parentMG(ngId){
+  return GROUPS.find(g=>g.children.some(c=>c.id===ngId));
+}
+
+// 소그룹 크로스 링크 맵
+const crossMap={};
+L1_LINKS.forEach(l=>{
+  if(!crossMap[l.s]) crossMap[l.s]=[];
+  if(!crossMap[l.t]) crossMap[l.t]=[];
+  if(!crossMap[l.s].find(x=>x.id===l.t)) crossMap[l.s].push({id:l.t,label:l.label,str:l.str});
+  if(!crossMap[l.t].find(x=>x.id===l.s)) crossMap[l.t].push({id:l.s,label:l.label,str:l.str});
+});
+
+// ══════════════════════════════════════════
+// TOOLTIP / MODAL
+// ══════════════════════════════════════════
+const ttEl=document.getElementById('tt');
+function showTT(e,node){
+  const links=crossMap[node.id]||[];
+  document.getElementById('tt-t').textContent=node.name;
+  document.getElementById('tt-b').textContent=`인사이트 ${node.count}개`;
+  document.getElementById('tt-i').innerHTML=(node.insights||[]).slice(0,3).map(i=>`<li>${i}</li>`).join('');
+  document.getElementById('tt-l').textContent=links.length?`↔ 연계: ${links.map(l=>l.id).join(', ')}`:' ';
+  ttEl.classList.add('on'); moveTT(e);
+}
+function moveTT(e){
+  ttEl.style.left=Math.min(e.clientX+14,window.innerWidth-330)+'px';
+  ttEl.style.top=Math.min(e.clientY+14,window.innerHeight-230)+'px';
+}
+function hideTT(){ttEl.classList.remove('on');}
+
+function openModal(node){
+  const mg=parentMG(node.id);
+  document.getElementById('m-title').textContent=node.name;
+  document.getElementById('m-cat').textContent=`${node.id} · ${mg?mg.short:''}`;
+  document.getElementById('m-ins').innerHTML=(node.insights||[]).map((ins,i)=>`<li><span style="opacity:.4;margin-right:6px">#</span>${ins}</li>`).join('');
+  const links=crossMap[node.id]||[];
+  const rel=document.getElementById('m-rel');
+  if(links.length){
+    rel.style.display='block';
+    document.getElementById('m-tags').innerHTML=links.map(l=>{
+      const c=parentColor(l.id);
+      return `<span class="mr-tag" style="background:${c}22;color:${c};border:1px solid ${c}44" title="${l.label}">${l.id} · ${l.label}</span>`;
+    }).join('');
+  } else rel.style.display='none';
+  document.getElementById('modal').classList.add('open');
+}
+function cModal(e){if(e.target.id==='modal')document.getElementById('modal').classList.remove('open');}
+
+// ══════════════════════════════════════════
+// VIEW SWITCHER
+// ══════════════════════════════════════════
+const built={network:false,dendro:false,euler:false};
+function switchView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.querySelector(`[onclick="switchView('${id}')"]`).classList.add('active');
+  if(!built[id]&&buildFns[id]){buildFns[id]();built[id]=true;}
+}
+
+// ══════════════════════════════════════════
+// AFFINITY VIEW
+// ══════════════════════════════════════════
+(function buildAffinity(){
+  const cont=document.getElementById('aff-cont');
+  GROUPS.forEach(mg=>{
+    const d=document.createElement('div');
+    d.className='l2g'; d.style.borderColor=mg.color+'44';
+    d.innerHTML=`<div class="l2h" onclick="toggleGrp(this)">
+        <span class="l2dot" style="background:${mg.color}"></span>
+        <span class="l2lbl">${mg.name}</span>
+        <span class="l2meta">${mg.total}개 인사이트 · ${mg.children.length}개 소그룹</span>
+        <span class="l2chev">▾</span>
+      </div>
+      <div class="l1grid">${mg.children.map(g=>{
+        const links=(crossMap[g.id]||[]).filter(l=>parentMG(l.id)?.id!==mg.id);
+        const badges=links.map(l=>`<span class="cross-badge" style="background:${parentColor(l.id)}22;color:${parentColor(l.id)}">${l.id}</span>`).join('');
+        return `<div class="l1c" style="border-color:${mg.color}33" onclick='openModal(${JSON.stringify(g)})'>
+          <div class="l1ct">${g.name}</div>
+          <div class="l1cc">${g.id} · 인사이트 ${g.count}개</div>
+          ${badges?`<div class="cross-badges">${badges}</div>`:''}
+        </div>`;
+      }).join('')}</div>`;
+    cont.appendChild(d);
+  });
+})();
+function toggleGrp(h){const g=h.closest('.l2g'),grid=g.querySelector('.l1grid');g.classList.toggle('col');grid.style.display=g.classList.contains('col')?'none':'grid';}
+
+// ══════════════════════════════════════════
+// NETWORK VIEW
+// ══════════════════════════════════════════
+let nzoom,nsvg;
+function buildNetwork(){
+  const el=document.getElementById('net-svg');
+  const W=el.clientWidth,H=el.clientHeight;
+  const svg=d3.select('#net-svg'); svg.selectAll('*').remove();
+  nzoom=d3.zoom().scaleExtent([0.15,4]).on('zoom',e=>grp.attr('transform',e.transform));
+  svg.call(nzoom);
+  const grp=svg.append('g'); nsvg=svg;
+
+  const nodes=[],allLinks=[];
+  GROUPS.forEach(mg=>{
+    nodes.push({id:mg.id,name:mg.name,short:mg.short,type:'mg',color:mg.color,r:26,total:mg.total});
+    mg.children.forEach(ng=>{
+      nodes.push({id:ng.id,name:ng.name,type:'ng',color:mg.color,r:Math.sqrt(ng.count)*4.5+5,data:ng,parentId:mg.id});
+      allLinks.push({source:mg.id,target:ng.id,kind:'hier',str:2});
+    });
+  });
+  L2_LINKS.forEach(l=>allLinks.push({source:l.s,target:l.t,kind:'cross-mg',str:l.str,label:l.label}));
+  L1_LINKS.forEach(l=>allLinks.push({source:l.s,target:l.t,kind:'cross-ng',str:l.str,label:l.label}));
+
+  const sim=d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(allLinks).id(d=>d.id)
+      .distance(d=>d.kind==='hier'?90:d.kind==='cross-mg'?260:160)
+      .strength(d=>d.kind==='hier'?.7:d.kind==='cross-mg'?.12:.06))
+    .force('charge',d3.forceManyBody().strength(d=>d.type==='mg'?-700:-140))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide().radius(d=>d.r+18));
+
+  const crossMG=grp.append('g').selectAll('line').data(allLinks.filter(l=>l.kind==='cross-mg')).join('line')
+    .attr('stroke',d=>{const sn=nodes.find(n=>n.id===(typeof d.source==='object'?d.source.id:d.source));return sn?sn.color+'77':'#444';})
+    .attr('stroke-width',d=>d.str===3?2.2:d.str===2?1.3:.75)
+    .attr('stroke-opacity',d=>d.str===3?.6:d.str===2?.35:.18)
+    .attr('stroke-dasharray',d=>d.str===1?'5 4':null);
+
+  const crossNG=grp.append('g').selectAll('line').data(allLinks.filter(l=>l.kind==='cross-ng')).join('line')
+    .attr('stroke','rgba(200,184,154,.25)')
+    .attr('stroke-width',d=>d.str===3?1.3:.7)
+    .attr('stroke-dasharray','3 3')
+    .attr('stroke-opacity',d=>d.str===3?.55:d.str===2?.32:.18);
+
+  const hierLinks=grp.append('g').selectAll('line').data(allLinks.filter(l=>l.kind==='hier')).join('line')
+    .attr('stroke',d=>{const tn=nodes.find(n=>n.id===(typeof d.target==='object'?d.target.id:d.target));return tn?tn.color+'30':'#333';})
+    .attr('stroke-width',.7).attr('stroke-opacity',.6);
+
+  const nodeG=grp.append('g').selectAll('g').data(nodes).join('g')
+    .style('cursor','pointer')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y})
+      .on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null}))
+    .on('click',(e,d)=>{if(d.data)openModal(d.data);e.stopPropagation();})
+    .on('mouseover',(e,d)=>{if(d.data)showTT(e,d.data);})
+    .on('mousemove',moveTT)
+    .on('mouseout',hideTT);
+
+  nodeG.append('circle')
+    .attr('r',d=>d.r)
+    .attr('fill',d=>d.type==='mg'?d.color+'1e':d.color+'14')
+    .attr('stroke',d=>d.color)
+    .attr('stroke-width',d=>d.type==='mg'?1.5:.9)
+    .attr('stroke-opacity',d=>d.type==='mg'?.85:.6);
+
+  nodeG.filter(d=>d.type==='ng').each(function(d){
+    const ext=(crossMap[d.id]||[]).filter(l=>parentMG(l.id)?.id!==d.id[0]);
+    if(ext.length) d3.select(this).append('circle').attr('r',d.r+5).attr('fill','none')
+      .attr('stroke',d.color).attr('stroke-width',.5).attr('stroke-dasharray','2 3').attr('opacity',.35);
+  });
+
+  nodeG.filter(d=>d.type==='mg').append('text')
+    .text(d=>d.id).attr('text-anchor','middle').attr('dy','0.35em')
+    .attr('fill',d=>d.color).attr('font-size',11).attr('font-weight','700').attr('font-family','var(--font)');
+
+  nodeG.filter(d=>d.type==='mg').each(function(d){
+    const el2=d3.select(this);
+    const maxLen=16;
+    const full=d.short;
+    const lines=[];
+    for(let i=0;i<full.length;i+=maxLen) lines.push(full.slice(i,i+maxLen));
+    lines.forEach((ln,i)=>{
+      el2.append('text').text(ln).attr('x',d.r+8).attr('y',(i-(lines.length-1)/2)*13)
+        .attr('dominant-baseline','middle').attr('fill',d.color).attr('font-size',9)
+        .attr('font-weight','500').attr('font-family','var(--font)').attr('opacity',.85);
+    });
+  });
+
+  nodeG.filter(d=>d.type==='ng').append('text')
+    .text(d=>d.id).attr('text-anchor','middle').attr('dy','0.35em')
+    .attr('fill',d=>d.color).attr('font-size',7.5).attr('font-weight','600')
+    .attr('font-family','var(--font)').attr('opacity',.9);
+
+  sim.on('tick',()=>{
+    crossMG.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    crossNG.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    hierLinks.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeG.attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+}
+function zIn(){nsvg?.transition().call(nzoom.scaleBy,1.3);}
+function zOut(){nsvg?.transition().call(nzoom.scaleBy,0.77);}
+function zReset(){nsvg?.transition().call(nzoom.transform,d3.zoomIdentity);}
+
+// ══════════════════════════════════════════
+// DENDROGRAM VIEW
+// ══════════════════════════════════════════
+function buildDendro(){
+  const W=Math.max(1000,document.getElementById('view-dendro').clientWidth);
+  const H=Math.max(860,window.innerHeight-156);
+  const cx=W/2,cy=H/2;
+  const svg=d3.select('#den-svg').attr('width',W).attr('height',H);
+  svg.selectAll('*').remove();
+
+  const orderedRoot={name:'혼술 행동',id:'root',children:GROUPS};
+  const hier=d3.hierarchy(orderedRoot);
+  const r=Math.min(cx,cy)-170;
+  const tree=d3.cluster().size([2*Math.PI,r]).separation((a,b)=>a.parent===b.parent?1:1.6);
+  const root=tree(hier);
+
+  const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
+  const radLink=d3.linkRadial().angle(d=>d.x).radius(d=>d.y);
+
+  g.append('g').selectAll('path').data(root.links()).join('path')
+    .attr('fill','none')
+    .attr('stroke',d=>{const a=d.target.ancestors().find(a=>a.depth===1);return a?a.data.color+'50':'#333';})
+    .attr('stroke-width',d=>d.target.depth===1?1.3:.7)
+    .attr('d',radLink);
+
+  const posMap={};
+  root.descendants().forEach(d=>{if(d.data.id)posMap[d.data.id]=d;});
+
+  const crossG=g.append('g');
+  L1_LINKS.forEach(link=>{
+    const sn=posMap[link.s],tn=posMap[link.t];
+    if(!sn||!tn) return;
+    const sx=sn.y*Math.cos(sn.x-Math.PI/2),sy=sn.y*Math.sin(sn.x-Math.PI/2);
+    const tx=tn.y*Math.cos(tn.x-Math.PI/2),ty=tn.y*Math.sin(tn.x-Math.PI/2);
+    const mx=(sx+tx)/2*.3,my=(sy+ty)/2*.3;
+    crossG.append('path').attr('fill','none')
+      .attr('stroke',link.str===3?'rgba(200,184,154,.5)':'rgba(200,184,154,.22)')
+      .attr('stroke-width',link.str===3?1.4:.7)
+      .attr('stroke-dasharray',link.str===2?'5 3':link.str===1?'3 3':null)
+      .attr('d',`M${sx},${sy} Q${mx},${my} ${tx},${ty}`);
+  });
+
+  const nodeG=g.append('g').selectAll('g').data(root.descendants()).join('g')
+    .attr('transform',d=>{
+      const x=d.y*Math.cos(d.x-Math.PI/2),y=d.y*Math.sin(d.x-Math.PI/2);
+      return `translate(${x},${y})`;
+    })
+    .style('cursor',d=>d.depth===2?'pointer':'default')
+    .on('click',(e,d)=>{if(d.depth===2&&d.data.insights)openModal(d.data);})
+    .on('mouseover',(e,d)=>{if(d.depth===2&&d.data)showTT(e,d.data);})
+    .on('mousemove',moveTT).on('mouseout',hideTT);
+
+  nodeG.append('circle')
+    .attr('r',d=>d.depth===0?11:d.depth===1?9:Math.sqrt(d.data.count||1)*3+3)
+    .attr('fill',d=>{
+      if(d.depth===0) return '#2a2520';
+      const a=d.ancestors().find(a=>a.depth===1);
+      const c=a?a.data.color:'#888';
+      return d.depth===1?c+'38':c+'1e';
+    })
+    .attr('stroke',d=>{
+      if(d.depth===0) return '#c8b89a';
+      const a=d.ancestors().find(a=>a.depth===1);
+      return a?a.data.color:'#888';
+    })
+    .attr('stroke-width',d=>d.depth===2?.8:1.2);
+
+  nodeG.filter(d=>d.depth===0).append('text')
+    .text('혼술').attr('text-anchor','middle').attr('dy','-.3em')
+    .attr('fill','#c8b89a').attr('font-size',9).attr('font-weight','700').attr('font-family','var(--font)');
+  nodeG.filter(d=>d.depth===0).append('text')
+    .text('행동').attr('text-anchor','middle').attr('dy','.9em')
+    .attr('fill','#c8b89a').attr('font-size',9).attr('font-weight','700').attr('font-family','var(--font)');
+
+  nodeG.filter(d=>d.depth===1).each(function(d){
+    const node=d3.select(this);
+    const angle=(d.x-Math.PI/2+2*Math.PI)%(2*Math.PI);
+    const rightSide=angle<Math.PI;
+    const c=d.data.color||'#888';
+    const offsetX=rightSide?14:-14;
+    const anchor=rightSide?'start':'end';
+
+    node.append('circle').attr('r',9).attr('fill',c+'28').attr('stroke',c).attr('stroke-width',1.2);
+    node.append('text').text(d.data.id).attr('text-anchor','middle').attr('dy','0.35em')
+      .attr('fill',c).attr('font-size',8.5).attr('font-weight','700').attr('font-family','var(--font)');
+
+    const full=d.data.short||'';
+    const chunk=13;
+    const lines=[];
+    for(let i=0;i<full.length;i+=chunk) lines.push(full.slice(i,i+chunk));
+    lines.forEach((ln,i)=>{
+      node.append('text').text(ln).attr('x',offsetX).attr('y',(i-(lines.length-1)/2)*12)
+        .attr('dominant-baseline','middle').attr('text-anchor',anchor)
+        .attr('fill',c).attr('font-size',9).attr('font-weight','500').attr('font-family','var(--font)').attr('opacity',.85);
+    });
+  });
+
+  nodeG.filter(d=>d.depth===2).each(function(d){
+    const node=d3.select(this);
+    const a=d.ancestors().find(a=>a.depth===1);
+    const c=a?a.data.color:'#888';
+    const angle=(d.x-Math.PI/2+2*Math.PI)%(2*Math.PI);
+    const rightSide=angle<Math.PI;
+    const offsetX=rightSide?10:-10;
+    const anchor=rightSide?'start':'end';
+    const rr=Math.sqrt(d.data.count||1)*3+3;
+
+    node.append('text').text(d.data.id).attr('text-anchor','middle').attr('dy','0.35em')
+      .attr('fill',c).attr('font-size',7).attr('font-weight','600').attr('font-family','var(--font)');
+
+    const short=(d.data.name||'').slice(0,15)+((d.data.name?.length||0)>15?'…':'');
+    node.append('text').text(short)
+      .attr('x',offsetX+(rightSide?rr:-rr)).attr('y',0)
+      .attr('dominant-baseline','middle').attr('text-anchor',anchor)
+      .attr('fill',c).attr('font-size',7.5).attr('font-weight','400').attr('font-family','var(--font)').attr('opacity',.7);
+
+    node.append('text').text(`(${d.data.count})`)
+      .attr('x',offsetX+(rightSide?rr:-rr)).attr('y',10)
+      .attr('text-anchor',anchor).attr('fill',c)
+      .attr('font-size',7).attr('font-weight','500').attr('font-family','var(--font)').attr('opacity',.45);
+  });
+}
+
+// ══════════════════════════════════════════
+// EULER DIAGRAM VIEW
+// ══════════════════════════════════════════
+let ezoom,esvg;
+function buildEuler(){
+  const el=document.getElementById('euler-svg');
+  const W=el.clientWidth,H=el.clientHeight;
+  const svg=d3.select('#euler-svg');svg.selectAll('*').remove();
+  esvg=svg;
+  ezoom=d3.zoom().scaleExtent([0.2,6]).on('zoom',e=>{
+    eg.attr('transform',e.transform);
+    document.getElementById('euler-scale').textContent=Math.round(e.transform.k*100)+'%';
+  });
+  svg.call(ezoom);
+
+  // 중그룹 원 위치 — MG1 왼쪽 위, MG2 중앙 위, MG3 가운데, MG4 오른쪽, MG5 아래 가운데
+  const baseR=110;
+  const circleData=[
+    {id:'MG1',x:W/2-210,y:H/2-90, r:baseR+5, color:GROUPS.find(g=>g.id==='MG1').color},
+    {id:'MG2',x:W/2,    y:H/2-120,r:baseR+15,color:GROUPS.find(g=>g.id==='MG2').color},
+    {id:'MG3',x:W/2-120,y:H/2+70, r:baseR,   color:GROUPS.find(g=>g.id==='MG3').color},
+    {id:'MG4',x:W/2+200,y:H/2-70, r:baseR+10,color:GROUPS.find(g=>g.id==='MG4').color},
+    {id:'MG5',x:W/2+80, y:H/2+120,r:baseR,   color:GROUPS.find(g=>g.id==='MG5').color},
+  ];
+
+  function getOverlap(str){return str===3?58:str===2?30:10;}
+  for(let it=0;it<300;it++){
+    L2_LINKS.forEach(link=>{
+      const a=circleData.find(c=>c.id===link.s);
+      const b=circleData.find(c=>c.id===link.t);
+      if(!a||!b) return;
+      const target=a.r+b.r-getOverlap(link.str);
+      const dx=b.x-a.x,dy=b.y-a.y;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      const diff=(dist-target)/dist*0.035;
+      if(a.id!=='MG2'){a.x+=dx*diff;a.y+=dy*diff;}
+      b.x-=dx*diff;b.y-=dy*diff;
+    });
+    circleData.forEach(c=>{
+      c.x=Math.max(c.r+60,Math.min(W-c.r-60,c.x));
+      c.y=Math.max(c.r+60,Math.min(H-c.r-60,c.y));
+    });
+  }
+
+  const eg=svg.append('g');
+
+  // 겹침 영역
+  const overlapG=eg.append('g').attr('opacity',.9);
+  L2_LINKS.sort((a,b)=>b.str-a.str).forEach(link=>{
+    const ca=circleData.find(c=>c.id===link.s);
+    const cb=circleData.find(c=>c.id===link.t);
+    if(!ca||!cb) return;
+    const mx=(ca.x+cb.x)/2,my=(ca.y+cb.y)/2;
+    const blendColor=blendHex(ca.color,cb.color);
+    const dx=cb.x-ca.x,dy=cb.y-ca.y;
+    const angle=Math.atan2(dy,dx)*180/Math.PI;
+    const ow=getOverlap(link.str)*1.1,oh=Math.min(ca.r,cb.r)*0.5;
+    overlapG.append('ellipse').attr('cx',mx).attr('cy',my)
+      .attr('rx',ow).attr('ry',oh)
+      .attr('transform',`rotate(${angle},${mx},${my})`)
+      .attr('fill',blendColor).attr('opacity',(link.str===3?.22:link.str===2?.14:.08)+.05)
+      .attr('stroke',blendColor).attr('stroke-width',.5).attr('stroke-opacity',.3);
+  });
+
+  // 원 그리기
+  circleData.forEach(c=>{
+    eg.append('circle').attr('cx',c.x).attr('cy',c.y).attr('r',c.r)
+      .attr('fill',c.color).attr('fill-opacity',.07)
+      .attr('stroke',c.color).attr('stroke-width',1.8).attr('stroke-opacity',.7);
+  });
+
+  // 연결 레이블
+  L2_LINKS.forEach(link=>{
+    const ca=circleData.find(c=>c.id===link.s);
+    const cb=circleData.find(c=>c.id===link.t);
+    if(!ca||!cb) return;
+    const mx=(ca.x+cb.x)/2,my=(ca.y+cb.y)/2;
+    const strLabel=link.str===3?'강한 연계':link.str===2?'중간 연계':'약한 연계';
+    eg.append('text').text(link.label).attr('x',mx).attr('y',my-7)
+      .attr('text-anchor','middle').attr('fill','#c8b89a').attr('font-size',8.5)
+      .attr('font-weight','600').attr('font-family','var(--font)').attr('opacity',.8);
+    eg.append('text').text(`${link.s}↔${link.t} · ${strLabel}`).attr('x',mx).attr('y',my+6)
+      .attr('text-anchor','middle').attr('fill','#c8b89a').attr('font-size',7.5)
+      .attr('font-family','var(--font)').attr('opacity',.5);
+  });
+
+  // 소그룹 도트
+  const subG=eg.append('g');
+  const subPosMap={};
+  GROUPS.forEach(mg=>{
+    const cc=circleData.find(c=>c.id===mg.id);
+    if(!cc) return;
+    const n=mg.children.length;
+    mg.children.forEach((child,i)=>{
+      const angle=(i/n)*2*Math.PI-Math.PI/2;
+      const dist=cc.r*0.48;
+      const cx2=cc.x+Math.cos(angle)*dist;
+      const cy2=cc.y+Math.sin(angle)*dist;
+      subPosMap[child.id]={x:cx2,y:cy2};
+      const sr=Math.sqrt(child.count)*3.2+4;
+      const dotG=subG.append('g').style('cursor','pointer')
+        .on('click',()=>openModal(child))
+        .on('mouseover',(e)=>showTT(e,child))
+        .on('mousemove',moveTT).on('mouseout',hideTT);
+      dotG.append('circle').attr('cx',cx2).attr('cy',cy2).attr('r',sr)
+        .attr('fill',cc.color).attr('fill-opacity',.18)
+        .attr('stroke',cc.color).attr('stroke-width',.9).attr('stroke-opacity',.65);
+      dotG.append('text').text(child.id).attr('x',cx2).attr('y',cy2)
+        .attr('text-anchor','middle').attr('dominant-baseline','central')
+        .attr('fill',cc.color).attr('font-size',7).attr('font-weight','700').attr('font-family','var(--font)');
+    });
+  });
+
+  // 소그룹 크로스 링크 선
+  const crossLineG=eg.append('g').attr('pointer-events','none');
+  L1_LINKS.forEach(link=>{
+    const sp=subPosMap[link.s],tp=subPosMap[link.t];
+    if(!sp||!tp) return;
+    const mx=(sp.x+tp.x)/2,my=(sp.y+tp.y)/2;
+    crossLineG.append('path').attr('fill','none')
+      .attr('stroke',link.str===3?'rgba(200,184,154,.55)':'rgba(200,184,154,.22)')
+      .attr('stroke-width',link.str===3?1.2:.6)
+      .attr('stroke-dasharray',link.str===2?'4 3':link.str===1?'2 3':null)
+      .attr('d',`M${sp.x},${sp.y} Q${mx},${my-20} ${tp.x},${tp.y}`);
+  });
+
+  // 중그룹 레이블 (원 위에)
+  circleData.forEach(c=>{
+    const mg=GROUPS.find(g=>g.id===c.id);
+    if(!mg) return;
+    const labelY=c.y-c.r-10;
+    eg.append('text').text(c.id).attr('x',c.x).attr('y',labelY-13)
+      .attr('text-anchor','middle').attr('fill',c.color)
+      .attr('font-size',13).attr('font-weight','700').attr('font-family','var(--font)');
+    const short=mg.short;
+    const chunk=14;
+    const lines=[];
+    for(let i=0;i<short.length;i+=chunk) lines.push(short.slice(i,i+chunk));
+    lines.forEach((ln,i)=>{
+      eg.append('text').text(ln).attr('x',c.x).attr('y',labelY+i*11)
+        .attr('text-anchor','middle').attr('fill',c.color)
+        .attr('font-size',9).attr('font-weight','500').attr('font-family','var(--font)').attr('opacity',.82);
+    });
+  });
+}
+
+function ezIn(){esvg?.transition().duration(300).call(ezoom.scaleBy,1.4);}
+function ezOut(){esvg?.transition().duration(300).call(ezoom.scaleBy,0.72);}
+function ezReset(){esvg?.transition().duration(400).call(ezoom.transform,d3.zoomIdentity);document.getElementById('euler-scale').textContent='100%';}
+
+function blendHex(c1,c2){
+  const p=v=>{const r=parseInt(v.slice(1,3),16),g=parseInt(v.slice(3,5),16),b=parseInt(v.slice(5,7),16);return[r,g,b];};
+  const [r1,g1,b1]=p(c1),[r2,g2,b2]=p(c2);
+  const r=Math.round((r1+r2)/2),g=Math.round((g1+g2)/2),b=Math.round((b1+b2)/2);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+
+// ══════════════════════════════════════════
+// SESSION FLOW VIEW
+// ══════════════════════════════════════════
+function buildFlow(){
+  const PHASES=[
+    {id:'P1',label:'세션 준비',time:'음주 시작 전',ngs:['NG11','NG09','NG18','NG15'],
+     desc:'루틴 세팅·콘텐츠 준비·목표 설정'},
+    {id:'P2',label:'초기 음주',time:'~30분 이내',ngs:['NG01','NG03','NG04','NG19','NG21'],
+     desc:'속도 가속·인지 시차·측정 오류 발생'},
+    {id:'P3',label:'음주 지속',time:'30분~',ngs:['NG05','NG06','NG10','NG16','NG22'],
+     desc:'외부 변수가 페이스를 조절·패턴 무의식 반복'},
+    {id:'P4',label:'종료 전후',time:'후반부',ngs:['NG07','NG08','NG02','NG12','NG17'],
+     desc:'신체 종료 신호·마무리 루틴 생략·생체 데이터'},
+    {id:'P5',label:'사후·서비스',time:'메타 / 리플렉션',ngs:['NG13','NG14','NG20','NG23'],
+     desc:'데이터 피드백·개인화 가이드·개입 타이밍'},
+  ];
+
+  const ngMap={};
+  GROUPS.forEach(mg=>mg.children.forEach(ng=>{ngMap[ng.id]={...ng,color:mg.color,mgId:mg.id};}));
+
+  const wrap=document.getElementById('flow-wrap');
+  const footer=document.getElementById('flow-footer');
+  wrap.innerHTML=''; footer.innerHTML='';
+
+  PHASES.forEach((ph,pi)=>{
+    if(pi>0){
+      const arr=document.createElement('div');
+      arr.className='flow-arrow'; arr.textContent='→';
+      wrap.appendChild(arr);
+    }
+    const col=document.createElement('div'); col.className='flow-phase';
+    const total=ph.ngs.reduce((s,id)=>s+(ngMap[id]?.count||0),0);
+    col.innerHTML=`<div class="phase-hd">
+      <div class="phase-tag">${ph.id}</div>
+      <div class="phase-title">${ph.label}</div>
+      <div class="phase-time">${ph.time}</div>
+    </div>`;
+    ph.ngs.forEach(ngId=>{
+      const ng=ngMap[ngId]; if(!ng) return;
+      const card=document.createElement('div');
+      card.className='flow-card';
+      card.style.cssText=`border-color:${ng.color}44;background:${ng.color}10`;
+      card.innerHTML=`<div class="flow-card-id" style="color:${ng.color}">${ng.id}</div>
+        <div class="flow-card-txt">${ng.name}</div>
+        <div class="flow-card-cnt">인사이트 ${ng.count}개</div>`;
+      card.onclick=()=>openModal(ng);
+      card.onmouseover=e=>showTT(e,ng);
+      card.onmousemove=moveTT;
+      card.onmouseout=hideTT;
+      col.appendChild(card);
+    });
+    wrap.appendChild(col);
+
+    const kpi=document.createElement('div'); kpi.className='flow-kpi';
+    if(pi>0){ const a=document.createElement('div'); a.className='flow-arrow'; a.style='font-size:14px;padding-top:0'; footer.appendChild(a); }
+    kpi.innerHTML=`<strong>${total}</strong>인사이트<br><span style="font-size:9px">${ph.desc}</span>`;
+    footer.appendChild(kpi);
+  });
+}
+
+// ══════════════════════════════════════════
+// CHORD DIAGRAM VIEW
+// ══════════════════════════════════════════
+function buildChord(){
+  const el=document.getElementById('chord-svg');
+  const W=el.clientWidth, H=el.clientHeight;
+  const svg=d3.select('#chord-svg'); svg.selectAll('*').remove();
+
+  const mgIds=GROUPS.map(g=>g.id);
+  const colors=GROUPS.map(g=>g.color);
+  const n=mgIds.length;
+
+  // 매트릭스 생성
+  const matrix=Array(n).fill(null).map(()=>Array(n).fill(0));
+  GROUPS.forEach((mg,i)=>{matrix[i][i]=mg.total;});
+  L2_LINKS.forEach(l=>{
+    const si=mgIds.indexOf(l.s), ti=mgIds.indexOf(l.t);
+    if(si<0||ti<0) return;
+    const v=l.str*18;
+    matrix[si][ti]+=v; matrix[ti][si]+=v;
+  });
+
+  const outerR=Math.min(W,H)/2-100;
+  const innerR=outerR-28;
+  const g=svg.append('g').attr('transform',`translate(${W/2},${H/2})`);
+
+  const chord=d3.chord().padAngle(0.06).sortSubgroups(d3.descending);
+  const chords=chord(matrix);
+
+  const arc=d3.arc().innerRadius(innerR).outerRadius(outerR);
+  const ribbon=d3.ribbon().radius(innerR-2);
+
+  // 리본 (그룹 간 연결)
+  g.append('g').selectAll('path')
+    .data(chords).join('path')
+    .attr('d',ribbon)
+    .attr('fill',d=>colors[d.source.index])
+    .attr('fill-opacity',0.22)
+    .attr('stroke',d=>colors[d.source.index])
+    .attr('stroke-width',0.5)
+    .attr('stroke-opacity',0.4)
+    .on('mouseover',function(e,d){
+      d3.select(this).attr('fill-opacity',0.45);
+      const s=GROUPS[d.source.index], t=GROUPS[d.target.index];
+      const link=L2_LINKS.find(l=>(l.s===s.id&&l.t===t.id)||(l.s===t.id&&l.t===s.id));
+      document.getElementById('chord-tt-body').innerHTML=
+        `<b style="color:${colors[d.source.index]}">${s.short}</b> ↔ <b style="color:${colors[d.target.index]}">${t.short}</b><br>
+        ${link?link.label:'동일 그룹 내부'}`;
+    })
+    .on('mouseout',function(){d3.select(this).attr('fill-opacity',0.22);});
+
+  // 호 (그룹 섹션)
+  const grpG=g.append('g').selectAll('g').data(chords.groups).join('g');
+  grpG.append('path').attr('d',arc)
+    .attr('fill',d=>colors[d.index]+'33')
+    .attr('stroke',d=>colors[d.index])
+    .attr('stroke-width',1.2)
+    .on('mouseover',(e,d)=>{
+      const mg=GROUPS[d.index];
+      document.getElementById('chord-tt-body').innerHTML=
+        `<b style="color:${colors[d.index]}">${mg.id} · ${mg.short}</b><br>인사이트 ${mg.total}개 · 소그룹 ${mg.children.length}개`;
+    });
+
+  // 그룹 레이블
+  grpG.append('text')
+    .each(d=>{d.angle=(d.startAngle+d.endAngle)/2;})
+    .attr('dy','0.35em')
+    .attr('transform',d=>`rotate(${d.angle*180/Math.PI-90}) translate(${outerR+12}) ${d.angle>Math.PI?'rotate(180)':''}`)
+    .attr('text-anchor',d=>d.angle>Math.PI?'end':'start')
+    .attr('fill',d=>colors[d.index])
+    .attr('font-size',10).attr('font-weight','700').attr('font-family','var(--font)')
+    .text(d=>mgIds[d.index]);
+
+  // ID 바깥 short 레이블
+  grpG.each(function(d){
+    const el2=d3.select(this);
+    const angle=((d.startAngle+d.endAngle)/2)*180/Math.PI-90;
+    const rightSide=angle<90||angle>270;
+    const labelR=outerR+36;
+    const rad=((d.startAngle+d.endAngle)/2);
+    const x=labelR*Math.sin(rad), y=-labelR*Math.cos(rad);
+    const short=GROUPS[d.index].short;
+    const chunk=10, lines=[];
+    for(let i=0;i<short.length;i+=chunk) lines.push(short.slice(i,i+chunk));
+    lines.forEach((ln,li)=>{
+      el2.append('text').text(ln)
+        .attr('x',x).attr('y',y+(li-(lines.length-1)/2)*12)
+        .attr('dominant-baseline','middle')
+        .attr('text-anchor','middle')
+        .attr('fill',GROUPS[d.index].color)
+        .attr('font-size',8.5).attr('font-weight','400').attr('font-family','var(--font)').attr('opacity',.78);
+    });
+  });
+
+  // 인사이트 수 내부 레이블
+  grpG.append('text')
+    .each(d=>{d.angle=(d.startAngle+d.endAngle)/2;})
+    .attr('transform',d=>`rotate(${d.angle*180/Math.PI-90}) translate(${innerR-14}) ${d.angle>Math.PI?'rotate(180)':''}`)
+    .attr('text-anchor','middle').attr('dy','0.35em')
+    .attr('fill',d=>colors[d.index]).attr('font-size',9).attr('font-weight','600').attr('font-family','var(--font)').attr('opacity',.7)
+    .text(d=>GROUPS[d.index].total+'개');
+
+  // 중앙 레이블
+  g.append('text').text('혼술 행동').attr('text-anchor','middle').attr('dy','-.3em')
+    .attr('fill','#c8b89a').attr('font-size',11).attr('font-weight','700').attr('font-family','var(--font)');
+  g.append('text').text('270 인사이트').attr('text-anchor','middle').attr('dy','.9em')
+    .attr('fill','#c8b89a').attr('font-size',9).attr('font-family','var(--font)').attr('opacity',.6);
+}
+
+// ══════════════════════════════════════════
+// TREEMAP VIEW
+// ══════════════════════════════════════════
+function buildTreemap(){
+  renderTreemap(null);
+}
+
+function renderTreemap(focusMg){
+  const wrap=document.getElementById('treemap-wrap');
+  wrap.innerHTML='';
+  const W=Math.max(800,wrap.parentElement.clientWidth-56);
+  const H=Math.max(480,window.innerHeight-220);
+
+  document.getElementById('tm-bc').innerHTML=focusMg
+    ?`<span onclick="renderTreemap(null)">전체</span> › <span style="color:var(--txt);text-decoration:none;cursor:default">${focusMg.id} · ${focusMg.short}</span>`
+    :`전체 보기`;
+
+  const treeData=focusMg
+    ?{name:'root',children:focusMg.children.map(ng=>({name:ng.id,title:ng.name,value:ng.count,color:focusMg.color,data:ng}))}
+    :{name:'root',children:GROUPS.map(mg=>({
+        name:mg.id,short:mg.short,color:mg.color,mgRef:mg,
+        children:mg.children.map(ng=>({name:ng.id,title:ng.name,value:ng.count,color:mg.color,data:ng}))
+      }))};
+
+  const root=d3.hierarchy(treeData).sum(d=>d.value||0).sort((a,b)=>b.value-a.value);
+  d3.treemap().size([W,H]).padding(focusMg?3:6).paddingTop(focusMg?3:26)(root);
+
+  const svg=d3.create('svg').attr('width',W).attr('height',H).style('display','block');
+
+  const cell=svg.selectAll('g').data(root.leaves()).join('g')
+    .attr('transform',d=>`translate(${d.x0},${d.y0})`);
+
+  const cellW=d=>Math.max(0,d.x1-d.x0);
+  const cellH=d=>Math.max(0,d.y1-d.y0);
+
+  cell.append('rect')
+    .attr('width',cellW).attr('height',cellH)
+    .attr('rx',4)
+    .attr('fill',d=>d.data.color+'18')
+    .attr('stroke',d=>d.data.color)
+    .attr('stroke-width',1)
+    .attr('stroke-opacity',.6)
+    .style('cursor','pointer')
+    .on('click',(e,d)=>{
+      if(d.data.data) openModal(d.data.data);
+    })
+    .on('mouseover',(e,d)=>{if(d.data.data) showTT(e,d.data.data);})
+    .on('mousemove',moveTT).on('mouseout',hideTT);
+
+  cell.filter(d=>cellW(d)>50&&cellH(d)>30).append('text')
+    .attr('x',6).attr('y',14)
+    .attr('fill',d=>d.data.color).attr('font-size',9.5).attr('font-weight','700')
+    .attr('font-family','var(--font)').text(d=>d.data.name);
+
+  cell.filter(d=>cellW(d)>70&&cellH(d)>50).append('foreignObject')
+    .attr('x',5).attr('y',20).attr('width',d=>cellW(d)-10).attr('height',d=>cellH(d)-28)
+    .append('xhtml:div')
+    .style('font-size','9px').style('color','rgba(232,230,223,.65)').style('line-height','1.4')
+    .style('overflow','hidden').style('font-family','var(--font)').style('padding','1px')
+    .text(d=>d.data.title||d.data.short||'');
+
+  cell.filter(d=>cellW(d)>40&&cellH(d)>24).append('text')
+    .attr('x',d=>cellW(d)-5).attr('y',d=>cellH(d)-5)
+    .attr('text-anchor','end')
+    .attr('fill',d=>d.data.color).attr('font-size',8).attr('opacity',.5)
+    .attr('font-family','var(--font)').text(d=>`${d.value}개`);
+
+  // 중그룹 레이블 (전체 뷰일 때 상단 타이틀)
+  if(!focusMg){
+    const mgNodes=root.children||[];
+    mgNodes.forEach(mgNode=>{
+      if(!mgNode.data.short) return;
+      svg.append('rect')
+        .attr('x',mgNode.x0+1).attr('y',mgNode.y0+1)
+        .attr('width',Math.max(0,mgNode.x1-mgNode.x0-2)).attr('height',22)
+        .attr('rx',4).attr('fill',mgNode.data.color+'28')
+        .attr('stroke','none').style('cursor','pointer')
+        .on('click',()=>renderTreemap(mgNode.data.mgRef));
+      svg.append('text')
+        .attr('x',mgNode.x0+8).attr('y',mgNode.y0+15)
+        .attr('fill',mgNode.data.color).attr('font-size',10).attr('font-weight','700')
+        .attr('font-family','var(--font)').style('cursor','pointer')
+        .on('click',()=>renderTreemap(mgNode.data.mgRef))
+        .text(`${mgNode.data.name} · ${mgNode.data.short}`);
+    });
+  }
+
+  wrap.appendChild(svg.node());
+}
+
+// ══════════════════════════════════════════
+// SUNBURST VIEW
+// ══════════════════════════════════════════
+function buildSunburst(){
+  const el=document.getElementById('view-sunburst');
+  const W=el.clientWidth, H=el.clientHeight;
+  const R=Math.min(W,H)/2-10;
+  const svg=d3.select('#sunburst-svg').attr('width',W).attr('height',H);
+  svg.selectAll('*').remove();
+
+  const treeData={name:'root',children:GROUPS.map(mg=>({
+    name:mg.id,short:mg.short,color:mg.color,
+    children:mg.children.map(ng=>({
+      name:ng.id,title:ng.name,value:ng.count,color:mg.color,data:ng
+    }))
+  }))};
+
+  const root=d3.hierarchy(treeData).sum(d=>d.value||0).sort((a,b)=>b.value-a.value);
+  d3.partition().size([2*Math.PI,R])(root);
+
+  const arc=d3.arc()
+    .startAngle(d=>d.x0).endAngle(d=>d.x1)
+    .padAngle(d=>Math.min((d.x1-d.x0)/2,0.006))
+    .padRadius(R/2)
+    .innerRadius(d=>d.y0).outerRadius(d=>Math.max(d.y0,d.y1-1.5));
+
+  const g=svg.append('g').attr('transform',`translate(${W/2},${H/2})`);
+
+  let currentRoot=root;
+
+  function render(p){
+    currentRoot=p;
+    g.selectAll('*').remove();
+
+    const vis=p.descendants().filter(d=>d.depth&&d.x1-d.x0>0.001);
+
+    // 슬라이스
+    g.append('g').selectAll('path')
+      .data(vis).join('path')
+      .attr('d',arc)
+      .attr('fill',d=>d.data.color+(d.depth===1?'30':'18'))
+      .attr('stroke',d=>d.data.color)
+      .attr('stroke-width',0.8)
+      .attr('stroke-opacity',0.7)
+      .style('cursor','pointer')
+      .on('click',(e,d)=>{
+        if(d.depth===1) render(d);
+        else if(d.data.data) openModal(d.data.data);
+      })
+      .on('mouseover',(e,d)=>{
+        document.getElementById('sb-title').textContent=d.data.name+(d.data.title?': '+d.data.title:' · '+d.data.short);
+        document.getElementById('sb-body').textContent=d.depth===2?`인사이트 ${d.data.value}개 · 클릭하면 상세 보기`:`소그룹 ${d.children?.length||0}개 · 클릭하면 드릴다운`;
+        if(d.data.data) showTT(e,d.data.data);
+      })
+      .on('mousemove',moveTT).on('mouseout',hideTT);
+
+    // 깊이 1 (MG) 레이블
+    g.append('g').attr('pointer-events','none')
+      .selectAll('text').data(vis.filter(d=>d.depth===1&&(d.x1-d.x0)>0.25)).join('text')
+      .attr('transform',d=>{
+        const [x,y]=arc.centroid(d);
+        const angle=((d.x0+d.x1)/2)*180/Math.PI-90;
+        return `translate(${x},${y}) rotate(${angle>90&&angle<270?angle+180:angle})`;
+      })
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill',d=>d.data.color).attr('font-size',10).attr('font-weight','700')
+      .attr('font-family','var(--font)').text(d=>d.data.name);
+
+    // 깊이 2 (NG) 레이블
+    g.append('g').attr('pointer-events','none')
+      .selectAll('text').data(vis.filter(d=>d.depth===2&&(d.x1-d.x0)>0.12)).join('text')
+      .attr('transform',d=>{
+        const [x,y]=arc.centroid(d);
+        const angle=((d.x0+d.x1)/2)*180/Math.PI-90;
+        return `translate(${x},${y}) rotate(${angle>90&&angle<270?angle+180:angle})`;
+      })
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill',d=>d.data.color).attr('font-size',8).attr('font-weight','600')
+      .attr('font-family','var(--font)').text(d=>d.data.name);
+
+    // 중앙 클릭 영역 (돌아가기)
+    const cLabel=p.depth>0?p.data.name:'혼술 행동';
+    const cSub=p.depth>0?'클릭하여 전체로':'270개 인사이트';
+    g.append('circle').attr('r',p.y0||R*0.15)
+      .attr('fill','var(--sur2)').attr('stroke','var(--brd)').attr('stroke-width',1)
+      .style('cursor',p.depth>0?'pointer':'default')
+      .on('click',()=>{if(p.depth>0)render(root);});
+    g.append('text').text(cLabel).attr('text-anchor','middle').attr('dy','-.3em')
+      .attr('fill','#c8b89a').attr('font-size',p.depth>0?9:10).attr('font-weight','700')
+      .attr('font-family','var(--font)');
+    g.append('text').text(cSub).attr('text-anchor','middle').attr('dy','.9em')
+      .attr('fill','var(--mut)').attr('font-size',8).attr('font-family','var(--font)');
+  }
+
+  render(root);
+}
+
+// ══════════════════════════════════════════
+// SANKEY VIEW
+// ══════════════════════════════════════════
+function buildSankey(){
+  const W=Math.min(1200,document.getElementById('view-sankey').clientWidth-60);
+  const H=Math.max(580,window.innerHeight-200);
+  const svg=d3.select('#sankey-svg').attr('width',W).attr('height',H);
+  svg.selectAll('*').remove();
+
+  // 노드 정의 (세션 플로우 기반)
+  const NODES=[
+    // 단계 0: 세션 시작
+    {id:'n0',label:'혼술 세션 시작',phase:0,color:'#c8b89a'},
+    // 단계 1: 준비·환경
+    {id:'n1',label:'준비 루틴\n세팅',phase:1,color:'#8a7eb0',ng:'NG11'},
+    {id:'n2',label:'콘텐츠\n몰입 환경',phase:1,color:'#8a7eb0',ng:'NG18'},
+    // 단계 2: 초기 음주
+    {id:'n3',label:'초기\n급격 가속',phase:2,color:'#b87c6e',ng:'NG01'},
+    {id:'n4',label:'인지 시차\n발생',phase:2,color:'#b87c6e',ng:'NG03'},
+    {id:'n5',label:'음주량\n측정 오류',phase:2,color:'#b87c6e',ng:'NG19'},
+    // 단계 3: 페이스 조절
+    {id:'n6',label:'안주·식사\n제동',phase:3,color:'#6e9e82',ng:'NG05'},
+    {id:'n7',label:'콘텐츠\n동기화',phase:3,color:'#6e9e82',ng:'NG09'},
+    {id:'n8',label:'스마트폰\n분산',phase:3,color:'#6e9e82',ng:'NG10'},
+    // 단계 4: 신체 신호
+    {id:'n9',label:'자세\n무너짐',phase:4,color:'#7090b8',ng:'NG07'},
+    {id:'n10',label:'졸음\n지표',phase:4,color:'#7090b8',ng:'NG08'},
+    // 단계 5: 종료
+    {id:'n11',label:'비자발적\n종료',phase:5,color:'#b87c6e',ng:'NG02'},
+    {id:'n12',label:'마무리\n루틴 생략',phase:5,color:'#7090b8',ng:'NG12'},
+    // 단계 6: 사후
+    {id:'n13',label:'데이터\n피드백 필요',phase:6,color:'#a08c7a',ng:'NG13'},
+    {id:'n14',label:'개인화\n가이드 요청',phase:6,color:'#a08c7a',ng:'NG20'},
+  ];
+
+  // 흐름 정의 (인사이트 수 기반 추정)
+  const LINKS=[
+    // 시작 → 준비·환경
+    {s:'n0',t:'n1',v:55},{s:'n0',t:'n2',v:45},
+    // 준비·환경 → 초기 음주
+    {s:'n1',t:'n3',v:40},{s:'n1',t:'n4',v:15},
+    {s:'n2',t:'n3',v:30},{s:'n2',t:'n7',v:15},
+    // 초기 음주 → 페이스 조절
+    {s:'n3',t:'n6',v:22},{s:'n3',t:'n7',v:20},{s:'n3',t:'n5',v:28},
+    {s:'n4',t:'n5',v:14},{s:'n4',t:'n8',v:13},
+    {s:'n5',t:'n6',v:16},{s:'n5',t:'n9',v:12},
+    // 페이스 조절 → 신체 신호
+    {s:'n6',t:'n9',v:18},{s:'n6',t:'n11',v:14},
+    {s:'n7',t:'n9',v:15},{s:'n7',t:'n10',v:16},
+    {s:'n8',t:'n10',v:12},{s:'n8',t:'n9',v:8},
+    // 신체 신호 → 종료
+    {s:'n9',t:'n11',v:28},{s:'n9',t:'n12',v:14},
+    {s:'n10',t:'n11',v:20},{s:'n10',t:'n12',v:10},
+    // 종료 → 사후
+    {s:'n11',t:'n13',v:30},{s:'n12',t:'n14',v:18},
+    {s:'n11',t:'n14',v:16},{s:'n12',t:'n13',v:12},
+  ];
+
+  const nodeMap={}; NODES.forEach(n=>{nodeMap[n.id]=n;});
+
+  // 위상별 x 배치
+  const phases=6; const pW=W/(phases+1);
+  const phaseNodes={}; NODES.forEach(n=>{
+    if(!phaseNodes[n.phase]) phaseNodes[n.phase]=[];
+    phaseNodes[n.phase].push(n);
+  });
+  const nodeH=36, nodePad=14;
+  NODES.forEach(n=>{
+    const grp=phaseNodes[n.phase];
+    const idx=grp.indexOf(n);
+    const totalH=grp.length*(nodeH+nodePad)-nodePad;
+    n.x=pW*(n.phase+0.5);
+    n.y=H/2-totalH/2+idx*(nodeH+nodePad);
+    n.w=pW*0.65; n.h=nodeH;
+  });
+
+  // 링크 경로 계산 (베지어)
+  const g=svg.append('g');
+
+  // 링크 렌더
+  const maxV=Math.max(...LINKS.map(l=>l.v));
+  g.selectAll('.sk-link').data(LINKS).join('path').attr('class','sk-link')
+    .attr('d',l=>{
+      const s=nodeMap[l.s], t=nodeMap[l.t];
+      const sx=s.x+s.w/2, sy=s.y+s.h/2;
+      const tx=t.x-t.w/2, ty=t.y+t.h/2;
+      const cx=(sx+tx)/2;
+      return `M${sx},${sy} C${cx},${sy} ${cx},${ty} ${tx},${ty}`;
+    })
+    .attr('fill','none')
+    .attr('stroke',l=>nodeMap[l.s].color)
+    .attr('stroke-width',l=>Math.max(1.5,l.v/maxV*22))
+    .attr('stroke-opacity',0.28)
+    .attr('stroke-linecap','round');
+
+  // 노드 렌더
+  const nodeG=g.selectAll('.sk-node').data(NODES).join('g').attr('class','sk-node')
+    .style('cursor','pointer')
+    .on('click',(e,d)=>{
+      const ngId=d.ng;
+      if(!ngId) return;
+      let found=null;
+      GROUPS.forEach(mg=>mg.children.forEach(ng=>{if(ng.id===ngId)found=ng;}));
+      if(found) openModal(found);
+    });
+
+  nodeG.append('rect')
+    .attr('x',d=>d.x-d.w/2).attr('y',d=>d.y)
+    .attr('width',d=>d.w).attr('height',d=>d.h).attr('rx',6)
+    .attr('fill',d=>d.color+'22').attr('stroke',d=>d.color)
+    .attr('stroke-width',1.2).attr('stroke-opacity',0.8);
+
+  nodeG.each(function(d){
+    const lines=d.label.split('\n');
+    const el2=d3.select(this);
+    lines.forEach((ln,i)=>{
+      el2.append('text').text(ln)
+        .attr('x',d.x).attr('y',d.y+d.h/2+(i-(lines.length-1)/2)*13)
+        .attr('dominant-baseline','middle').attr('text-anchor','middle')
+        .attr('fill',d.color).attr('font-size',9).attr('font-weight','600')
+        .attr('font-family','var(--font)');
+    });
+    if(d.ng){
+      el2.append('text').text(d.ng)
+        .attr('x',d.x+d.w/2-4).attr('y',d.y+d.h-4)
+        .attr('text-anchor','end').attr('fill',d.color)
+        .attr('font-size',7.5).attr('opacity',.5).attr('font-family','var(--font)');
+    }
+  });
+
+  // 단계 레이블
+  const phaseLabels=['세션 시작','준비·환경','초기 음주','페이스 조절','신체 신호','종료','사후 니즈'];
+  phaseLabels.forEach((lbl,i)=>{
+    svg.append('text').text(lbl)
+      .attr('x',pW*(i+0.5)).attr('y',22)
+      .attr('text-anchor','middle').attr('fill','var(--mut)')
+      .attr('font-size',9.5).attr('font-weight','600').attr('letter-spacing','.03em')
+      .attr('font-family','var(--font)');
+    svg.append('line')
+      .attr('x1',pW*(i+0.5)).attr('y1',28).attr('x2',pW*(i+0.5)).attr('y2',H-10)
+      .attr('stroke','var(--brd)').attr('stroke-width',.5).attr('stroke-dasharray','3 4');
+  });
+}
+
+// ══════════════════════════════════════════
+// CAUSAL LOOP DIAGRAM VIEW
+// ══════════════════════════════════════════
+let czoom2,csvg2;
+function buildCausal(){
+  const el=document.getElementById('causal-svg');
+  const W=el.clientWidth, H=el.clientHeight;
+  const svg=d3.select('#causal-svg'); svg.selectAll('*').remove();
+  csvg2=svg;
+  czoom2=d3.zoom().scaleExtent([0.2,4]).on('zoom',e=>cg.attr('transform',e.transform));
+  svg.call(czoom2);
+  const cg=svg.append('g');
+
+  // 인과지도 노드 (핵심 개념들)
+  const CNODES=[
+    {id:'C1',label:'스트레스·\n감정 상태',x:W*0.15,y:H*0.3,color:'#b87c6e',type:'trigger'},
+    {id:'C2',label:'혼술\n세팅·루틴',x:W*0.28,y:H*0.18,color:'#8a7eb0',type:'env'},
+    {id:'C3',label:'초반 30분\n급격 가속',x:W*0.45,y:H*0.25,color:'#b87c6e',type:'key'},
+    {id:'C4',label:'인지·취기\n시차',x:W*0.62,y:H*0.18,color:'#b87c6e',type:'key'},
+    {id:'C5',label:'콘텐츠\n몰입',x:W*0.3,y:H*0.5,color:'#8a7eb0',type:'env'},
+    {id:'C6',label:'안주·수분\n섭취',x:W*0.48,y:H*0.55,color:'#6e9e82',type:'buffer'},
+    {id:'C7',label:'음주 페이스\n지속',x:W*0.62,y:H*0.42,color:'#b87c6e',type:'key'},
+    {id:'C8',label:'자세 무너짐\n신체 신호',x:W*0.72,y:H*0.6,color:'#7090b8',type:'signal'},
+    {id:'C9',label:'판단력\n저하',x:W*0.8,y:H*0.35,color:'#7090b8',type:'signal'},
+    {id:'C10',label:'리필·\n섞어 마시기',x:W*0.55,y:H*0.7,color:'#b87c6e',type:'key'},
+    {id:'C11',label:'비자발적\n종료',x:W*0.82,y:H*0.68,color:'#7090b8',type:'end'},
+    {id:'C12',label:'마무리 루틴\n생략',x:W*0.88,y:H*0.5,color:'#7090b8',type:'end'},
+    {id:'C13',label:'목표 주량\n설정',x:W*0.18,y:H*0.65,color:'#a08c7a',type:'service'},
+    {id:'C14',label:'데이터\n피드백',x:W*0.12,y:H*0.5,color:'#a08c7a',type:'service'},
+    {id:'C15',label:'개인화\n가이드',x:W*0.12,y:H*0.7,color:'#a08c7a',type:'service'},
+  ];
+
+  // 인과 연결 (s→t, type: 'R'=강화/+, 'B'=균형/-, 'W'=약한)
+  const CLINKS=[
+    // 강화 루프 (문제 심화)
+    {s:'C1',t:'C3',type:'R',label:'+'},
+    {s:'C3',t:'C4',type:'R',label:'+'},
+    {s:'C4',t:'C7',type:'R',label:'+'},
+    {s:'C7',t:'C9',type:'R',label:'+'},
+    {s:'C9',t:'C10',type:'R',label:'+'},
+    {s:'C10',t:'C4',type:'R',label:'+'},  // 강화 루프 완성
+    {s:'C2',t:'C3',type:'R',label:'+'},
+    {s:'C5',t:'C7',type:'R',label:'+'},
+    {s:'C7',t:'C8',type:'R',label:'+'},
+    {s:'C8',t:'C11',type:'R',label:'+'},
+    {s:'C9',t:'C12',type:'R',label:'+'},
+    // 균형 루프 (제동)
+    {s:'C6',t:'C7',type:'B',label:'−'},
+    {s:'C6',t:'C3',type:'B',label:'−'},
+    {s:'C13',t:'C7',type:'B',label:'−'},
+    // 서비스 개입
+    {s:'C14',t:'C4',type:'B',label:'−'},
+    {s:'C14',t:'C9',type:'B',label:'−'},
+    {s:'C15',t:'C3',type:'B',label:'−'},
+    // 약한 연결
+    {s:'C5',t:'C6',type:'W',label:'+'},
+    {s:'C1',t:'C5',type:'W',label:'+'},
+    {s:'C11',t:'C14',type:'W',label:'→'},
+  ];
+
+  const nodeMap={}; CNODES.forEach(n=>{nodeMap[n.id]={...n};});
+
+  // 화살표 마커 정의
+  const defs=svg.append('defs');
+  ['R','B','W'].forEach(t=>{
+    const col=t==='R'?'#e07060':t==='B'?'#6e9e82':'#7090b8';
+    defs.append('marker').attr('id',`arrow-${t}`)
+      .attr('viewBox','0 -5 10 10').attr('refX',10).attr('refY',0)
+      .attr('markerWidth',7).attr('markerHeight',7).attr('orient','auto')
+      .append('path').attr('d','M0,-5L10,0L0,5').attr('fill',col).attr('opacity',.8);
+  });
+
+  // 링크 그리기
+  cg.append('g').selectAll('path').data(CLINKS).join('path')
+    .attr('d',l=>{
+      const s=nodeMap[l.s], t=nodeMap[l.t];
+      const dx=t.x-s.x, dy=t.y-s.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      const nr=48; // 노드 반경
+      const sx=s.x+dx/dist*nr, sy=s.y+dy/dist*nr;
+      const tx=t.x-dx/dist*(nr+8), ty=t.y-dy/dist*(nr+8);
+      const cx=(sx+tx)/2+dy*0.15, cy=(sy+ty)/2-dx*0.15;
+      return `M${sx},${sy} Q${cx},${cy} ${tx},${ty}`;
+    })
+    .attr('fill','none')
+    .attr('stroke',l=>l.type==='R'?'#e07060':l.type==='B'?'#6e9e82':'#7090b8')
+    .attr('stroke-width',l=>l.type==='W'?1:1.8)
+    .attr('stroke-opacity',l=>l.type==='W'?.35:.65)
+    .attr('stroke-dasharray',l=>l.type==='W'?'5 4':null)
+    .attr('marker-end',l=>`url(#arrow-${l.type})`);
+
+  // 링크 레이블
+  cg.append('g').selectAll('text').data(CLINKS).join('text')
+    .attr('x',l=>{const s=nodeMap[l.s],t=nodeMap[l.t];return (s.x+t.x)/2+(t.y-s.y)*0.12;})
+    .attr('y',l=>{const s=nodeMap[l.s],t=nodeMap[l.t];return (s.y+t.y)/2-(t.x-s.x)*0.12;})
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('fill',l=>l.type==='R'?'#e07060':l.type==='B'?'#6e9e82':'#7090b8')
+    .attr('font-size',10).attr('font-weight','700').attr('font-family','var(--font)').attr('opacity',.85)
+    .text(l=>l.label);
+
+  // 노드 그리기
+  const nG=cg.append('g').selectAll('g').data(CNODES).join('g')
+    .attr('transform',d=>`translate(${d.x},${d.y})`)
+    .style('cursor',d=>d.type==='service'?'pointer':'default');
+
+  const typeR={trigger:42,env:40,key:46,buffer:40,signal:40,end:40,service:40};
+  nG.append('circle')
+    .attr('r',d=>typeR[d.type]||40)
+    .attr('fill',d=>d.color+(d.type==='key'?'28':'18'))
+    .attr('stroke',d=>d.color).attr('stroke-width',d=>d.type==='key'?2:1.2)
+    .attr('stroke-opacity',.8);
+
+  // key 노드 이중 원
+  nG.filter(d=>d.type==='key').append('circle')
+    .attr('r',d=>typeR[d.type]+7)
+    .attr('fill','none').attr('stroke',d=>d.color)
+    .attr('stroke-width',.5).attr('stroke-opacity',.35).attr('stroke-dasharray','3 3');
+
+  nG.each(function(d){
+    const lines=d.label.split('\n');
+    const el3=d3.select(this);
+    lines.forEach((ln,i)=>{
+      el3.append('text').text(ln)
+        .attr('y',(i-(lines.length-1)/2)*14)
+        .attr('dominant-baseline','middle').attr('text-anchor','middle')
+        .attr('fill',d.color).attr('font-size',d.type==='key'?10:9).attr('font-weight','600')
+        .attr('font-family','var(--font)');
+    });
+  });
+
+  // 강화 루프 레이블 (R)
+  cg.append('text').text('⟳ 강화 루프 (취기 심화 사이클)')
+    .attr('x',W*0.6).attr('y',H*0.08)
+    .attr('text-anchor','middle').attr('fill','#e07060')
+    .attr('font-size',10).attr('font-weight','700').attr('font-family','var(--font)').attr('opacity',.7);
+  cg.append('text').text('⟲ 균형 루프 (안주·서비스 제동)')
+    .attr('x',W*0.35).attr('y',H*0.88)
+    .attr('text-anchor','middle').attr('fill','#6e9e82')
+    .attr('font-size',10).attr('font-weight','700').attr('font-family','var(--font)').attr('opacity',.7);
+}
+function czIn(){csvg2?.transition().call(czoom2.scaleBy,1.3);}
+function czOut(){csvg2?.transition().call(czoom2.scaleBy,0.77);}
+function czReset(){csvg2?.transition().call(czoom2.transform,d3.zoomIdentity);}
+const buildFns={network:buildNetwork,dendro:buildDendro,euler:buildEuler,flow:buildFlow,chord:buildChord,treemap:buildTreemap,sunburst:buildSunburst,sankey:buildSankey,causal:buildCausal};
+</script>
+</body>
+</html>
